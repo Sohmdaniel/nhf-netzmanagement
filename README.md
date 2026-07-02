@@ -1,16 +1,30 @@
 # NHF Netzmanagement
 
-**GitHub Pages Version** – Vollständig statisch hostbar über GitHub.
+**GitHub Pages Version** – Vollständig statisch hostbar über GitHub mit Service Worker Caching.
 
 Diese Version der App läuft **ausschließlich über GitHub** (GitHub Pages). Alle Daten werden im Browser (`localStorage`) gespeichert.
 
-## Live Demo (nach Aktivierung von GitHub Pages)
+## Live Demo
 
-https://<dein-username>.github.io/nhf-netzmanagement/
+https://sohmdaniel.github.io/nhf-netzmanagement/
+
+## GitHub Pages + Service Worker Caching
+
+Die App nutzt einen **Service Worker** für:
+- Schnelles Laden (Cache First für App Shell)
+- Bessere Offline-Fähigkeit
+- Zuverlässiges PWA-Verhalten
+
+Der Service Worker cached automatisch:
+- `index.html`
+- `manifest.json`
+- App Shell
+
+Externe Skripte (Tailwind, jsPDF etc.) werden Network-First mit Cache-Fallback behandelt.
 
 ## Schnellstart
 
-1. Repository klonen oder die Dateien herunterladen
+1. Repository klonen oder Dateien herunterladen
 2. `index.html` im Browser öffnen
 
 **Demo-Login:**
@@ -19,26 +33,19 @@ https://<dein-username>.github.io/nhf-netzmanagement/
 
 ## GitHub Pages aktivieren
 
-1. Lade `index.html` und `manifest.json` in das Repository hoch
-2. Gehe zu **Settings → Pages**
-3. Source: `Deploy from a branch` → `main` / `/ (root)`
-4. Speichern
+1. Lade `index.html`, `manifest.json` und `sw.js` hoch
+2. Settings → Pages → Source: `main` / root
+3. Speichern
 
-Die App ist dann öffentlich unter deiner GitHub Pages URL erreichbar und als PWA installierbar.
-
-## Features (GitHub Pages Version)
-- Komplette PWA (iOS & Android installierbar)
-- Monatsinspektion, Mängelmeldung, Aufgaben-Board
+## Features
+- Komplette PWA (iOS & Android)
+- Service Worker Caching
+- Monatsinspektion, Mängelmeldung, Aufgaben
 - QR-Code Scanner & Generator
 - PDF Export & Teilen
-- Admin-Bereich mit Backup/Import
-- Funktioniert komplett offline nach erstem Laden
+- Admin-Bereich mit Backup
 
-**Hinweis:** PocketBase-Backend ist in dieser Version deaktiviert (da kein Server). Für volles Backend mit Synchronisation nutze die Docker/Termux-Versionen.
-
-## Weitere Setups
-- Docker & Multi-Container: Siehe `docker-compose.yml`
-- Termux (Android): Ordner `nhf-termux/`
+**Hinweis:** PocketBase ist deaktiviert (statische Version). Für Backend nutze Docker/Termux-Version.
 
 ---
 Build 4.1.0 | Netzgesellschaft Heilbronn
