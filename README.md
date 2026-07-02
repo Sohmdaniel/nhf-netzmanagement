@@ -1,27 +1,16 @@
 # NHF Netzmanagement
 
-**Live auf Vercel:** https://nhf-netzmanagement-gm50zoz3v-danisohm-7853s-projects.vercel.app
+**Live Demo (Vercel):** https://nhf-netzmanagement-gm50zoz3v-danisohm-7853s-projects.vercel.app
 
-Diese Version ist vollständig für statisches Hosting (Vercel / GitHub Pages) optimiert.
+## Final Version
+- Dynamischer Hosting-Hinweis (Vercel / GitHub / Local)
+- Eigener PWA Install-Button
+- Service Worker mit Caching
+- Voll funktionsfähig als PWA
 
-## Features
-- Dynamischer Hosting-Hinweis (erkennt automatisch Vercel / GitHub / Local)
-- Eigener PWA Installations-Button
-- Service Worker mit intelligentem Caching
-- Voll funktionsfähige PWA
-- QR-Code Scanner & Generator
-- PDF-Export & Teilen
-- Admin-Bereich mit Backup
-
-## Deployment auf Vercel
-
-1. Verbinde dieses GitHub-Repo mit Vercel
-2. Deploy
-3. Die App läuft unter deiner Vercel-URL
-
-## Lokale Nutzung
-
-Einfach `index.html` im Browser öffnen.
+## Deployment
+1. `index.html`, `sw.js` und `manifest.json` hochladen
+2. Auf Vercel oder GitHub Pages deployen
 
 **Demo-Login:** Admin / 0000
 

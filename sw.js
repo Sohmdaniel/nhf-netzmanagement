@@ -1,55 +1,22 @@
-// NHF Netzmanagement Service Worker
-// Optimiert für Vercel + GitHub Pages + PWA
+// NHF Netzmanagement Service Worker - Final Version
+// Optimiert für Vercel + GitHub Pages
 
-const CACHE_NAME = 'nhf-netzmanagement-v4';
-const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.json'
-];
+const CACHE_NAME = 'nhf-v5';
+const APP_SHELL = ['./', './index.html', './manifest.json'];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-      );
-    }).then(() => self.clients.claim())
-  );
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  if (APP_SHELL.some(path => url.pathname.endsWith(path) || url.pathname === '/')) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        return cached || fetch(event.request).then((response) => {
-          return caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, response.clone());
-            return response;
-          });
-        });
-      })
-    );
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  if (APP_SHELL.some(p => url.pathname.endsWith(p) || url.pathname === '/')) {
+    e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => { caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone())); return res; })));
     return;
   }
-
-  event.respondWith(
-    fetch(event.request).then((response) => {
-      if (response.status === 200) {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-      }
-      return response;
-    }).catch(() => caches.match(event.request))
-  );
+  e.respondWith(fetch(e.request).then(res => { if(res.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone())); return res; }).catch(() => caches.match(e.request)));
 });
