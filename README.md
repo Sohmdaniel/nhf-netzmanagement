@@ -1,58 +1,44 @@
 # NHF Netzmanagement
 
-Professionelle mobile Service-App für die Netzgesellschaft Heilbronn.
+**GitHub Pages Version** – Vollständig statisch hostbar über GitHub.
 
-**Features:**
-- Vollständige PWA (installierbar auf iPhone/Android)
-- Monatsinspektionen, Mängelmeldungen, Auftragsmanagement
-- QR-Code Scanner & Generator
-- PDF-Export & Teilen
-- Admin-Bereich mit Backup/Restore
-- Docker & Multi-Container Support
-- Termux (Android) + Termux:API Automatisierung
+Diese Version der App läuft **ausschließlich über GitHub** (GitHub Pages). Alle Daten werden im Browser (`localStorage`) gespeichert.
 
-## Schnellstart (lokal)
+## Live Demo (nach Aktivierung von GitHub Pages)
 
-1. Lade die Datei `index.html` herunter.
-2. Öffne sie im Browser.
+https://<dein-username>.github.io/nhf-netzmanagement/
+
+## Schnellstart
+
+1. Repository klonen oder die Dateien herunterladen
+2. `index.html` im Browser öffnen
 
 **Demo-Login:**
 - Benutzer: `Admin`
 - Passwort: `0000`
 
-## Docker (empfohlen für Server)
+## GitHub Pages aktivieren
 
-```bash
-git clone https://github.com/Sohmdaniel/nhf-netzmanagement.git
-cd nhf-netzmanagement
+1. Lade `index.html` und `manifest.json` in das Repository hoch
+2. Gehe zu **Settings → Pages**
+3. Source: `Deploy from a branch` → `main` / `/ (root)`
+4. Speichern
 
-# Einfaches Docker
-cd nhf-app
-docker compose up --build -d
+Die App ist dann öffentlich unter deiner GitHub Pages URL erreichbar und als PWA installierbar.
 
-# Multi-Container mit PocketBase
-cd nhf-multi
-docker compose up --build -d
-```
+## Features (GitHub Pages Version)
+- Komplette PWA (iOS & Android installierbar)
+- Monatsinspektion, Mängelmeldung, Aufgaben-Board
+- QR-Code Scanner & Generator
+- PDF Export & Teilen
+- Admin-Bereich mit Backup/Import
+- Funktioniert komplett offline nach erstem Laden
 
-App dann unter http://localhost:8080
+**Hinweis:** PocketBase-Backend ist in dieser Version deaktiviert (da kein Server). Für volles Backend mit Synchronisation nutze die Docker/Termux-Versionen.
 
-## Termux (Android)
-
-Siehe `nhf-termux/README.md` im Repo.
-
-## GitHub Pages (kostenlos hosting)
-
-Die App kann direkt über GitHub Pages gehostet werden.
-
-## Technologie
-- Reines HTML/JS + Tailwind (CDN)
-- jsPDF, QRCode.js, Html5-QRCode
-- Docker (Nginx)
-- PocketBase (optional Backend)
-
-Entwickelt als vollständig offline-fähige Progressive Web App.
+## Weitere Setups
+- Docker & Multi-Container: Siehe `docker-compose.yml`
+- Termux (Android): Ordner `nhf-termux/`
 
 ---
-
-**Build 4.1.0** | Netzgesellschaft Heilbronn
+Build 4.1.0 | Netzgesellschaft Heilbronn
