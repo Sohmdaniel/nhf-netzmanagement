@@ -1,0 +1,1221 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NHF Netzmanagement • Komplett</title>
+    <meta name="theme-color" content="#ff6600">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NHF Service">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/900/900797.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&amp;display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .nhf-orange { color: #ff6600; }
+        .nhf-bg-orange { background-color: #ff6600; }
+        .nhf-green { color: #009933; }
+        .nhf-bg-green { background-color: #009933; }
+        .btn-active:active { transform: scale(0.98); }
+        .modal-overlay { background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .error-shake { animation: shake 0.4s ease-in-out; border-color: #ef4444 !important; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        input, textarea, select { font-size: 16px !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
+        canvas.signature-canvas { touch-action: none; cursor: crosshair; background: white; border-radius: 1.5rem; }
+        .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 0.75rem 1.5rem; border-radius: 1rem; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.05em; z-index: 200; opacity: 0; transition: opacity 0.3s; }
+        @media print { .no-print { display: none !important; } .print-only { display: block !important; } body { background: white; } }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="toast-msg" class="toast pointer-events-none">STATUS</div>
+
+    <!-- Druckbereich -->
+    <div id="print-area" class="hidden print-only p-8 text-center bg-white">
+        <h1 class="text-xl font-bold tracking-tight uppercase nhf-orange mb-2">Netzgesellschaft Heilbronn</h1>
+        <h2 id="print-obj-name" class="text-2xl font-black uppercase mb-6">-</h2>
+        <div id="print-qrcode" class="flex justify-center my-4"></div>
+        <p class="text-xs text-gray-400 mt-4 font-medium uppercase tracking-wider">QR-Code zur Vor-Ort-Identifikation</p>
+    </div>
+
+    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col bg-gray-50 shadow-2xl relative no-print">
+        
+        <!-- LOGIN -->
+        <div id="view-login" class="view-panel flex-grow flex flex-col justify-center p-8 bg-white text-center">
+            <div class="mb-8">
+                <div class="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <svg class="w-10 h-10 nhf-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+                <h1 class="text-2xl font-extrabold nhf-orange tracking-tight uppercase">NHF Service Login</h1>
+                <p class="text-gray-400 mt-2 text-xs font-semibold uppercase tracking-widest">Netzgesellschaft Heilbronn</p>
+            </div>
+            <div class="space-y-4">
+                <div class="space-y-1 text-left">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Benutzername</label>
+                    <input type="text" id="username" placeholder="Benutzername" value="Admin" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none transition-all">
+                </div>
+                <div class="space-y-1 text-left">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Passwort</label>
+                    <input type="password" id="password" placeholder="Passwort" value="0000" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none transition-all">
+                </div>
+                <button onclick="handleLogin()" class="w-full nhf-bg-orange text-white font-bold py-4 rounded-2xl shadow-lg btn-active transition-all mt-4 uppercase text-xs tracking-widest">Login</button>
+                <button onclick="showView('view-register')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-2xl text-xs uppercase tracking-widest transition-all">Registrieren</button>
+                <p id="auth-status" class="text-center text-[10px] font-bold h-5 text-red-500 uppercase mt-2"></p>
+            </div>
+            <p class="text-center text-[9px] text-gray-300 mt-8">Build 5.0 • Komplett-Version mit Unterschrift</p>
+        </div>
+
+        <!-- REGISTRIERUNG -->
+        <div id="view-register" class="view-panel hidden flex-grow flex flex-col justify-center p-8 bg-white text-center">
+            <div class="mb-8">
+                <div class="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <svg class="w-10 h-10 nhf-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                </div>
+                <h1 class="text-2xl font-extrabold nhf-orange tracking-tight uppercase">Registrierung</h1>
+                <p class="text-gray-400 mt-2 text-xs font-semibold uppercase tracking-widest">Zutritt anfordern</p>
+            </div>
+            <div class="space-y-4">
+                <div class="space-y-1 text-left">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Benutzername</label>
+                    <input type="text" id="reg-username" placeholder="z.B. m.mustermann" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none transition-all">
+                </div>
+                <div class="space-y-1 text-left">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Passwort</label>
+                    <input type="password" id="reg-password" placeholder="Passwort wählen" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none transition-all">
+                </div>
+                <div class="space-y-1 text-left">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Gewünschte Rolle</label>
+                    <select id="reg-role" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none transition-all text-sm font-semibold text-gray-700">
+                        <option value="Monteur">Monteur (Eingeschränkter Zugriff)</option>
+                        <option value="Admin">Administrator (Vollzugriff)</option>
+                    </select>
+                </div>
+                <button onclick="handleRegister()" class="w-full nhf-bg-orange text-white font-bold py-4 rounded-2xl shadow-lg btn-active transition-all mt-4 uppercase text-xs tracking-widest">Registrierung anfragen</button>
+                <button onclick="showView('view-login')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-2xl text-xs uppercase tracking-widest transition-all">Zurück zum Login</button>
+                <p id="reg-status" class="text-center text-[10px] font-bold h-5 text-red-500 uppercase mt-2"></p>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="view-dashboard" class="view-panel hidden flex-grow flex flex-col">
+            <header class="p-6 bg-white border-b flex justify-between items-center sticky top-0 z-10 pt-safe">
+                <div class="text-left">
+                    <p class="text-[10px] font-bold text-gray-400 tracking-widest uppercase">Netzmanagement</p>
+                    <h2 class="text-lg font-bold nhf-orange">Objekt-Übersicht</h2>
+                </div>
+                <div class="flex gap-2">
+                    <button id="admin-tools-btn" onclick="showAdminTools()" class="hidden p-2 bg-gray-50 text-gray-500 rounded-xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </button>
+                    <button onclick="logout()" class="p-2 bg-red-50 text-red-500 rounded-xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
+                </div>
+            </header>
+            <div class="p-4 bg-white mb-2 shadow-sm flex gap-2">
+                <div class="relative flex-grow">
+                    <input type="text" id="search-bar" oninput="renderObjectList()" placeholder="Objekt suchen..." class="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <button onclick="startQRScanner()" class="p-3 nhf-bg-orange text-white rounded-xl shadow-md active:scale-95 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M4 8h8M4 16h8M4 20h4M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z"></path></svg>
+                </button>
+            </div>
+            <div class="p-4 space-y-3 overflow-y-auto flex-grow text-left" id="object-list"></div>
+        </div>
+
+        <!-- DETAIL -->
+        <div id="view-detail" class="view-panel hidden flex-grow flex flex-col">
+            <header class="p-6 bg-white border-b flex items-center gap-4 sticky top-0 z-10 pt-safe text-left">
+                <button onclick="showView('view-dashboard')" class="p-3 bg-gray-50 rounded-2xl border">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <div class="overflow-hidden">
+                    <h2 id="current-object-name" class="text-base font-bold nhf-orange leading-tight truncate">Objektname</h2>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Management-Konsole</p>
+                </div>
+            </header>
+            <div class="p-6 space-y-4">
+                <button onclick="openAction('inspection')" class="w-full flex items-center gap-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-orange-400 transition-all text-left">
+                    <div class="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                    </div>
+                    <div class="flex-grow">
+                        <span class="block font-bold text-gray-400 uppercase text-[9px] tracking-wide mb-1">Intervallprüfung</span>
+                        <span class="block font-bold text-sm uppercase text-gray-800">Monatsinspektion</span>
+                    </div>
+                </button>
+                <button onclick="openAction('defect')" class="w-full flex items-center gap-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-red-400 transition-all text-left">
+                    <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div class="flex-grow">
+                        <span class="block font-bold text-gray-400 uppercase text-[9px] tracking-wide mb-1">Meldewesen</span>
+                        <span class="block font-bold text-sm text-red-600 uppercase">Mängelmeldung</span>
+                    </div>
+                </button>
+                <button onclick="openAction('tasks')" class="w-full flex items-center gap-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-green-400 transition-all text-left relative">
+                    <div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center nhf-green">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    </div>
+                    <div class="flex-grow">
+                        <span class="block font-bold text-gray-400 uppercase text-[9px] tracking-wide mb-1">Auftragssteuerung</span>
+                        <span class="block font-bold text-sm uppercase text-gray-800">Aufgaben-Board</span>
+                    </div>
+                    <div id="detail-task-count" class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full"></div>
+                </button>
+                <button onclick="openAction('archive')" class="w-full flex items-center gap-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-gray-400 transition-all text-left">
+                    <div class="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                    </div>
+                    <div class="flex-grow">
+                        <span class="block font-bold text-gray-400 uppercase text-[9px] tracking-wide mb-1">Dokumentation</span>
+                        <span class="block font-bold text-sm uppercase text-gray-800">Archiv &amp; Protokolle</span>
+                    </div>
+                </button>
+                <hr class="border-gray-200 my-4">
+                <button onclick="showQRCode()" class="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-200 hover:bg-white transition-all text-left">
+                    <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-gray-600 border">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M4 8h8M4 16h8M4 20h4M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z"></path></svg>
+                    </div>
+                    <div class="flex-grow">
+                        <span class="block font-bold text-sm uppercase text-gray-800">[QR-Code für Objekt]</span>
+                        <span class="block text-[8px] text-gray-400 uppercase">Vor Ort Identifikation</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- FORM PANEL MIT UNTERSCHRIFT -->
+        <div id="view-form" class="view-panel hidden flex-grow flex flex-col bg-white">
+            <header class="p-6 border-b flex items-center gap-4 bg-white sticky top-0 z-10 pt-safe text-left">
+                <button onclick="showView('view-detail')" class="p-2 bg-gray-50 rounded-xl border">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h2 id="form-title" class="text-sm font-bold nhf-orange uppercase tracking-widest leading-tight">Erfassung</h2>
+            </header>
+            <div class="p-6 space-y-6 overflow-y-auto flex-grow">
+                <div class="grid grid-cols-2 gap-3 text-left">
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <p class="text-[9px] font-bold text-gray-400 uppercase">Benutzer</p>
+                        <p id="disp-user" class="font-bold text-xs text-gray-800">-</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <p class="text-[9px] font-bold text-gray-400 uppercase">Kostenstelle</p>
+                        <select id="cost-center" class="w-full bg-transparent font-bold text-xs text-gray-800 outline-none focus:text-orange-600 py-1"></select>
+                    </div>
+                </div>
+
+                <!-- Arbeitszeit -->
+                <div class="space-y-2 text-left">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase ml-1">Arbeitszeit &amp; Dauer</p>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div class="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                            <p class="text-[8px] font-bold text-gray-400 uppercase">Beginn</p>
+                            <input type="time" id="time-start" oninput="calcDuration('')" class="w-full bg-transparent font-bold text-xs text-gray-800 outline-none">
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                            <p class="text-[8px] font-bold text-gray-400 uppercase">Ende</p>
+                            <input type="time" id="time-end" oninput="calcDuration('')" class="w-full bg-transparent font-bold text-xs text-gray-800 outline-none">
+                        </div>
+                    </div>
+                    <div class="bg-orange-50/50 p-3 rounded-xl border border-orange-100 flex items-center justify-between">
+                        <p class="text-[9px] font-bold nhf-orange uppercase">Gesamtdauer</p>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="dur-hrs" placeholder="0" class="w-10 bg-white border border-gray-200 rounded p-1 text-center font-bold text-xs text-orange-800 outline-none">
+                            <span class="text-[9px] font-bold text-orange-400">Std</span>
+                            <input type="number" id="dur-mins" placeholder="0" class="w-10 bg-white border border-gray-200 rounded p-1 text-center font-bold text-xs text-orange-800 outline-none">
+                            <span class="text-[9px] font-bold text-orange-400">Min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="form-content" class="space-y-4 border-t pt-4 text-left"></div>
+
+                <!-- Foto -->
+                <div class="space-y-3">
+                    <label class="block text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">Fotobeleg</label>
+                    <div id="photo-preview" class="w-full aspect-video bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden">
+                        <span class="text-gray-400 text-[10px] font-bold uppercase text-center p-4">Kein Bild erfasst</span>
+                    </div>
+                    <button onclick="startCamera()" class="w-full py-3 bg-gray-100 rounded-xl text-xs font-bold text-gray-600 uppercase flex items-center justify-center gap-2 border border-gray-200 active:bg-gray-200 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                        Kamera öffnen
+                    </button>
+                </div>
+
+                <!-- UNTERSCHRIFT -->
+                <div class="space-y-3 pt-6 border-t border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                            Unterschrift Monteur <span class="text-red-500">*</span>
+                        </label>
+                        <span id="signature-required" class="text-[10px] font-bold text-red-500">ERFORDERLICH</span>
+                    </div>
+                    
+                    <div class="bg-white border-2 border-gray-200 rounded-3xl overflow-hidden relative shadow-inner">
+                        <canvas id="signature-canvas" width="380" height="180" class="signature-canvas w-full bg-white"></canvas>
+                        <div class="absolute bottom-3 right-3 flex gap-2">
+                            <button onclick="clearSignature()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold uppercase rounded-2xl transition-all">Öschen</button>
+                        </div>
+                    </div>
+                    <p id="signature-status" class="text-[10px] text-gray-400 text-center font-medium">Bitte mit Finger oder Stift unterschreiben</p>
+                </div>
+
+                <button onclick="handleFormSubmission()" class="w-full nhf-bg-orange text-white font-bold py-5 rounded-2xl shadow-xl btn-active flex items-center justify-center gap-3 uppercase text-xs tracking-widest mt-6">
+                    Abschließen &amp; Senden
+                </button>
+            </div>
+        </div>
+
+        <!-- SCANNER -->
+        <div id="view-scanner" class="view-panel hidden html5-qr-panel fixed inset-0 z-[120] bg-black flex flex-col no-print">
+            <div class="p-6 bg-black/80 flex items-center justify-between text-white pt-safe">
+                <div class="text-left">
+                    <h2 class="text-lg font-bold uppercase tracking-tight">Objekt scannen</h2>
+                </div>
+                <button onclick="stopQRScanner()" class="p-3 bg-white/10 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="qr-reader" class="flex-grow flex items-center justify-center"></div>
+        </div>
+
+        <!-- QR CODE -->
+        <div id="view-qrcode" class="view-panel hidden flex-grow flex flex-col bg-white">
+            <header class="p-6 border-b flex items-center gap-4 bg-white sticky top-0 z-10 pt-safe text-left">
+                <button onclick="showView('view-detail')" class="p-2 bg-gray-50 rounded-xl border">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h2 class="text-sm font-bold nhf-orange uppercase tracking-widest">Digitaler Zwilling</h2>
+            </header>
+            <div class="p-8 flex flex-col items-center justify-center flex-grow space-y-6 text-center">
+                <div id="qrcode-container" class="p-6 bg-white border-2 border-gray-100 rounded-3xl shadow-xl"></div>
+                <div>
+                    <h3 id="qr-obj-name" class="text-xl font-bold nhf-orange uppercase">Objekt</h3>
+                    <p class="text-xs text-gray-400 mt-2 font-medium leading-relaxed uppercase tracking-wider">QR-Code zur Vor-Ort-Identifikation</p>
+                </div>
+                <div class="w-full flex flex-col gap-2 pt-4">
+                    <button onclick="downloadQRCodePDF()" class="w-full py-4 nhf-bg-orange text-white rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        QR-Code als PDF laden
+                    </button>
+                    <button onclick="window.print()" class="w-full py-4 bg-gray-100 text-gray-600 border border-gray-200 rounded-2xl font-bold uppercase text-[10px] tracking-widest active:bg-gray-200 transition-all">Direkt Drucken</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ARCHIV -->
+        <div id="view-archive" class="view-panel hidden flex-grow flex flex-col bg-white">
+            <header class="p-6 border-b flex items-center gap-4 bg-white sticky top-0 z-10 pt-safe text-left">
+                <button onclick="showView('view-detail')" class="p-2 bg-gray-50 rounded-xl border">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h2 class="text-sm font-bold nhf-orange uppercase tracking-widest">Protokoll-Archiv</h2>
+            </header>
+            <div id="archive-list" class="p-6 space-y-3 overflow-y-auto flex-grow text-left"></div>
+        </div>
+
+        <!-- TASKS -->
+        <div id="view-tasks" class="view-panel hidden flex-grow flex flex-col bg-white">
+            <header class="p-6 border-b flex items-center gap-4 bg-white sticky top-0 z-10 pt-safe text-left">
+                <button onclick="showView('view-detail')" class="p-2 bg-gray-50 rounded-xl border">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h2 class="text-sm font-bold nhf-orange uppercase tracking-widest uppercase">Offene Aufträge</h2>
+            </header>
+            <div class="p-6 space-y-6 flex-grow overflow-y-auto text-left">
+                <div class="bg-orange-50/50 p-5 rounded-3xl border border-orange-100 space-y-4">
+                    <label class="block text-[10px] font-bold text-orange-800 uppercase tracking-wider">Neuer Auftrag anlegen</label>
+                    <input type="text" id="new-task-title" placeholder="Was ist zu tun?" class="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none shadow-sm focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div id="task-list" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <!-- ADMIN -->
+        <div id="view-admin" class="view-panel hidden flex-grow flex flex-col bg-white text-left">
+            <header class="p-6 bg-white border-b flex items-center gap-4 sticky top-0 z-10 pt-safe text-left">
+                <button onclick="showView('view-dashboard')" class="p-3 bg-gray-50 rounded-2xl border">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h2 class="text-lg font-bold nhf-orange uppercase tracking-tight">Systemverwaltung</h2>
+            </header>
+            <div class="p-6 space-y-8 overflow-y-auto flex-grow text-left">
+                
+                <!-- Freigaben -->
+                <section class="bg-orange-50/30 p-4 rounded-2xl border border-orange-100/60">
+                    <h3 class="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-3">Ausstehende Registrierungen</h3>
+                    <div id="admin-pending-list" class="space-y-2"></div>
+                </section>
+
+                <!-- Backup -->
+                <section class="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                    <h3 class="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-3">Datensicherung (Backup)</h3>
+                    <p class="text-xs text-gray-500 mb-4 leading-relaxed">Sichern Sie die gesamte Systemkonfiguration als verschlüsselte Datei.</p>
+                    <div class="space-y-3">
+                        <button onclick="createSystemBackup()" class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Backup herunterladen (Export)
+                        </button>
+                        <div class="border-t pt-3 mt-3">
+                            <label class="block text-[8px] font-black uppercase text-gray-400 mb-1">Backup einspielen (Import)</label>
+                            <input type="file" id="backup-file-input" accept=".json" class="hidden" onchange="restoreSystemBackup(event)">
+                            <button onclick="document.getElementById('backup-file-input').click()" class="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 border border-gray-300">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                Backup-Datei hochladen
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Kostenstellen -->
+                <section>
+                    <h3 class="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-4">Kostenstellen verwalten</h3>
+                    <div id="admin-cost-center-list" class="space-y-2 mb-4"></div>
+                    <div class="p-4 bg-orange-50/50 rounded-2xl space-y-2 border border-orange-100 text-left">
+                        <input type="text" id="new-cost-center" placeholder="z.B. 4600" class="w-full p-3 border rounded-xl text-sm outline-none bg-white focus:ring-2 focus:ring-orange-500">
+                        <button onclick="addCostCenter()" class="w-full py-3 nhf-bg-orange text-white rounded-xl text-xs font-bold uppercase tracking-wider">Kostenstelle hinzufügen</button>
+                    </div>
+                </section>
+
+                <hr class="border-gray-100">
+
+                <!-- Benutzer -->
+                <section>
+                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Aktive Benutzerkonten</h3>
+                    <div id="admin-user-list" class="space-y-3 mb-4"></div>
+                    <div class="p-4 bg-gray-50 rounded-2xl space-y-2 text-left border">
+                        <input type="text" id="new-user-name" placeholder="Name" class="w-full p-3 border rounded-xl text-sm outline-none bg-white focus:ring-2 focus:ring-orange-500">
+                        <input type="password" id="new-user-pass" placeholder="Passwort" class="w-full p-3 border rounded-xl text-sm outline-none bg-white focus:ring-2 focus:ring-orange-500">
+                        <div class="space-y-1 text-left">
+                            <label class="text-[8px] font-bold text-gray-400 uppercase ml-1">Rolle</label>
+                            <select id="new-user-role" class="w-full p-3 border rounded-xl text-sm font-bold bg-white text-gray-700 outline-none">
+                                <option value="Monteur">Monteur</option>
+                                <option value="Admin">Administrator</option>
+                            </select>
+                        </div>
+                        <button onclick="createUser()" class="w-full py-3 nhf-bg-orange text-white rounded-xl text-xs font-bold uppercase tracking-wider">Direkt anlegen</button>
+                    </div>
+                </section>
+
+                <!-- Objekte -->
+                <section>
+                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Netz-Objekte</h3>
+                    <div id="admin-object-list" class="space-y-2 mb-4"></div>
+                    <div class="p-4 bg-gray-50 rounded-2xl space-y-2 text-left border">
+                        <div class="flex gap-2">
+                            <select id="new-obj-type" class="p-3 border rounded-xl text-sm font-bold bg-white text-gray-700 outline-none focus:ring-2 focus:ring-orange-500">
+                                <option>UW</option>
+                                <option>SW</option>
+                            </select>
+                            <input type="text" id="new-obj-name" placeholder="Bezeichnung" class="flex-grow p-3 border rounded-xl text-sm outline-none bg-white focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <button onclick="createObject()" class="w-full py-3 nhf-bg-orange text-white rounded-xl text-xs font-bold uppercase tracking-wider">Objekt hinzufügen</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="inspection-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-6 modal-overlay no-print">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-8 space-y-6 text-center">
+            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">Mängel erkannt</h3>
+            <p class="text-xs text-gray-500 mt-2 leading-relaxed">Sollen automatisch Instandhaltungs-Aufträge für dieses Objekt generiert werden?</p>
+            <div class="space-y-2">
+                <button onclick="finalizeProtocol(true)" class="w-full py-4 nhf-bg-orange rounded-2xl text-[10px] font-bold text-white uppercase shadow-lg active:scale-95 transition-transform">Ja, Aufträge anlegen</button>
+                <button onclick="finalizeProtocol(false)" class="w-full py-3 bg-gray-100 rounded-2xl text-[10px] font-bold text-gray-500 uppercase active:bg-gray-200 transition-all">Nur Protokoll speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="task-completion-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-6 modal-overlay no-print">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-6 space-y-4 text-left">
+            <div class="text-center">
+                <h3 class="text-base font-bold text-gray-900 uppercase tracking-wide">Auftrag abschließen</h3>
+                <p id="modal-task-title" class="text-xs nhf-orange font-bold uppercase mt-1"></p>
+            </div>
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-bold text-gray-400 uppercase ml-1">Beginn</label>
+                        <input type="time" id="modal-time-start" oninput="calcDuration('modal-')" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold outline-none text-gray-800">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-bold text-gray-400 uppercase ml-1">Ende</label>
+                        <input type="time" id="modal-time-end" oninput="calcDuration('modal-')" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold outline-none text-gray-800">
+                    </div>
+                </div>
+                <div class="bg-orange-50/50 p-2 rounded-xl border border-orange-100 flex items-center justify-between">
+                    <p class="text-[8px] font-bold nhf-orange uppercase">Dauer</p>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="modal-dur-hrs" placeholder="0" class="w-8 bg-white border border-gray-200 rounded p-1 text-center font-bold text-xs text-orange-800 outline-none">
+                        <span class="text-[8px] font-bold text-orange-400">h</span>
+                        <input type="number" id="modal-dur-mins" placeholder="0" class="w-8 bg-white border border-gray-200 rounded p-1 text-center font-bold text-xs text-orange-800 outline-none">
+                        <span class="text-[8px] font-bold text-orange-400">m</span>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase ml-1">Kostenstelle</label>
+                    <select id="modal-cost-center" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold outline-none text-gray-800 focus:text-orange-600"></select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase ml-1">Abschlussnotiz</label>
+                    <textarea id="modal-note" placeholder="Tätigkeitsnachweis..." class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium h-20 outline-none resize-none text-gray-800 focus:border-orange-300"></textarea>
+                </div>
+            </div>
+            <div class="pt-2 space-y-2">
+                <button onclick="submitTaskCompletion()" class="w-full py-4 nhf-bg-orange text-white rounded-2xl text-[10px] font-bold uppercase shadow-lg active:scale-95 transition-transform">Speichern &amp; Beenden</button>
+                <button onclick="closeTaskModal()" class="w-full py-3 bg-gray-100 rounded-2xl text-[10px] font-bold text-gray-500 uppercase tracking-widest active:bg-gray-200 transition-all text-center">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kamera -->
+    <div id="view-camera" class="hidden fixed inset-0 z-[110] bg-black flex flex-col no-print text-center">
+        <div class="relative flex-grow flex items-center justify-center overflow-hidden">
+            <video id="video-feed" autoplay playsinline class="w-full h-full object-cover"></video>
+            <canvas id="photo-canvas" class="hidden"></canvas>
+            <button onclick="stopCamera()" class="absolute top-6 right-6 p-3 bg-white/20 backdrop-blur rounded-full text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="h-32 bg-black flex items-center justify-center">
+            <button onclick="takePhoto()" class="w-20 h-20 bg-white rounded-full border-4 border-gray-600 flex items-center justify-center active:scale-90 transition-transform">
+                <div class="w-16 h-16 bg-white border-2 border-black rounded-full"></div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Full working JavaScript code from the user's tested version
+        let state = { users: [], objects: [{ id: 1, name: "UW Badstraße", type: "UW" }, { id: 2, name: "UW Böllinger Höfe", type: "UW" }, { id: 3, name: "SW Kirchheim", type: "SW" }], tasks: [], archive: [], inspectionTasks: [{ id: 1, label: 'Schutztechnik i.O.' }, { id: 2, label: 'Gebäude i.O.' }, { id: 3, label: 'Schaltanlage i.O.' }], costCenters: ["4200", "4300", "4500", "4800"], currentUser: null };
+        let activeObjectId = null;
+        let selectedCategory = 'green';
+        let currentTaskToComplete = null;
+        let stream = null;
+        let photoData = null;
+        let signatureData = null;
+        const STORAGE_KEY = 'nhf_management_v5_komplett';
+        let html5QrCode = null;
+        let currentAction = '';
+        let signatureCanvas, signatureCtx, isDrawing = false, lastX = 0, lastY = 0;
+
+        function generateId() { return 'nhf-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now(); }
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hash = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        function showToast(text) {
+            const toast = document.getElementById('toast-msg');
+            toast.innerText = text;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2200);
+        }
+        function showView(viewId) {
+            document.querySelectorAll('.view-panel').forEach(v => v.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        function setupSignaturePad() {
+            signatureCanvas = document.getElementById('signature-canvas');
+            if (!signatureCanvas) return;
+            signatureCtx = signatureCanvas.getContext('2d');
+            const resize = () => {
+                const rect = signatureCanvas.getBoundingClientRect();
+                signatureCanvas.width = rect.width * 2;
+                signatureCanvas.height = rect.height * 2;
+                signatureCtx.scale(2, 2);
+                signatureCtx.strokeStyle = '#111111';
+                signatureCtx.lineJoin = 'round';
+                signatureCtx.lineCap = 'round';
+                signatureCtx.lineWidth = 3.5;
+            };
+            resize();
+            window.addEventListener('resize', resize);
+            signatureCanvas.addEventListener('mousedown', startDrawing);
+            signatureCanvas.addEventListener('mousemove', draw);
+            signatureCanvas.addEventListener('mouseup', stopDrawing);
+            signatureCanvas.addEventListener('mouseout', stopDrawing);
+            signatureCanvas.addEventListener('touchstart', e => { e.preventDefault(); startDrawing(e); });
+            signatureCanvas.addEventListener('touchmove', e => { e.preventDefault(); draw(e); });
+            signatureCanvas.addEventListener('touchend', e => { e.preventDefault(); stopDrawing(); });
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = signatureCanvas.getBoundingClientRect();
+            lastX = (e.clientX || e.touches[0].clientX) - rect.left;
+            lastY = (e.clientY || e.touches[0].clientY) - rect.top;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = signatureCanvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            signatureCtx.beginPath();
+            signatureCtx.moveTo(lastX, lastY);
+            signatureCtx.lineTo(x, y);
+            signatureCtx.stroke();
+            lastX = x; lastY = y;
+            signatureData = signatureCanvas.toDataURL('image/png');
+            document.getElementById('signature-status').textContent = "Unterschrift erfasst ✓";
+            document.getElementById('signature-required').classList.add('hidden');
+        }
+
+        function stopDrawing() { isDrawing = false; }
+
+        window.clearSignature = function() {
+            if (signatureCtx && signatureCanvas) signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            signatureData = null;
+            document.getElementById('signature-status').textContent = "Bitte mit Finger oder Stift unterschreiben";
+            document.getElementById('signature-required').classList.remove('hidden');
+        };
+
+        async function initSystem() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                state = { ...state, ...JSON.parse(saved) };
+            } else {
+                const adminPass = await hashPassword('0000');
+                state.users.push({ name: 'Admin', pass: adminPass, role: 'Admin', isApproved: true });
+                saveState();
+            }
+            state.users.forEach(u => {
+                if (u.isApproved === undefined) u.isApproved = true;
+                if (!u.role) u.role = u.isAdmin ? 'Admin' : 'Monteur';
+            });
+            if (!state.costCenters || state.costCenters.length === 0) state.costCenters = ["4200", "4300", "4500", "4800"];
+            saveState();
+            renderObjectList();
+            setTaskCategory('green');
+            setTimeout(() => {
+                const adminUser = state.users.find(u => u.name === 'Admin');
+                if (adminUser) {
+                    state.currentUser = adminUser;
+                    document.getElementById('admin-tools-btn').style.display = 'block';
+                    showDashboard();
+                }
+            }, 300);
+        }
+
+        function showDashboard() { renderObjectList(); showView('view-dashboard'); }
+
+        function logout() {
+            state.currentUser = null;
+            document.getElementById('username').value = "Admin";
+            document.getElementById('password').value = "0000";
+            document.getElementById('auth-status').innerText = "";
+            showView('view-login');
+        }
+
+        async function handleLogin() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+            const status = document.getElementById('auth-status');
+            const user = state.users.find(x => x.name.toLowerCase() === u.toLowerCase());
+            if (user && user.pass === await hashPassword(p)) {
+                if (user.isApproved === false) {
+                    status.innerText = "Zugriff ausstehend";
+                    document.getElementById('view-login').classList.add('error-shake');
+                    setTimeout(() => document.getElementById('view-login').classList.remove('error-shake'), 400);
+                    return;
+                }
+                state.currentUser = user;
+                document.getElementById('admin-tools-btn').style.display = (user.role === 'Admin') ? 'block' : 'none';
+                showDashboard();
+            } else {
+                status.innerText = "Zugriff verweigert";
+                document.getElementById('view-login').classList.add('error-shake');
+                setTimeout(() => document.getElementById('view-login').classList.remove('error-shake'), 400);
+            }
+        }
+
+        async function handleRegister() {
+            const u = document.getElementById('reg-username').value.trim();
+            const p = document.getElementById('reg-password').value;
+            const r = document.getElementById('reg-role').value;
+            const status = document.getElementById('reg-status');
+            if (!u || !p) { status.innerText = "Felder ausfüllen"; return; }
+            if (state.users.find(x => x.name.toLowerCase() === u.toLowerCase())) { status.innerText = "Benutzername vergeben"; return; }
+            const hashed = await hashPassword(p);
+            state.users.push({ name: u, pass: hashed, role: r, isApproved: false });
+            saveState();
+            showToast("ANFRAGE GESENDET - Freigabe ausstehend");
+            document.getElementById('reg-username').value = "";
+            document.getElementById('reg-password').value = "";
+            showView('view-login');
+        }
+
+        function populateCostCenterDropdowns() {
+            const html = state.costCenters.map(cc => `<option value="${cc}">KST ${cc}</option>`).join('');
+            const sel1 = document.getElementById('cost-center');
+            const sel2 = document.getElementById('modal-cost-center');
+            if (sel1) sel1.innerHTML = html || '<option>Keine KST</option>';
+            if (sel2) sel2.innerHTML = html || '<option>Keine KST</option>';
+        }
+
+        function calcDuration(prefix = '') {
+            const start = document.getElementById(prefix + 'time-start').value;
+            const end = document.getElementById(prefix + 'time-end').value;
+            const hrs = document.getElementById(prefix + 'dur-hrs');
+            const mins = document.getElementById(prefix + 'dur-mins');
+            if (start && end && hrs && mins) {
+                const [h1, m1] = start.split(':').map(Number);
+                const [h2, m2] = end.split(':').map(Number);
+                let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+                if (diff < 0) diff += 1440;
+                hrs.value = Math.floor(diff / 60);
+                mins.value = diff % 60;
+            }
+        }
+
+        function formatDurationDisplay(totalMins) {
+            const h = Math.floor(totalMins / 60);
+            const m = totalMins % 60;
+            return h > 0 ? `${h} Std ${m} Min` : `${m} Min`;
+        }
+
+        function renderObjectList() {
+            const query = (document.getElementById('search-bar')?.value || '').toLowerCase();
+            const filtered = state.objects.filter(o => o.name.toLowerCase().includes(query));
+            const container = document.getElementById('object-list');
+            if (!container) return;
+            container.innerHTML = filtered.map(obj => {
+                const openCount = state.tasks.filter(t => t.objectId === obj.id && !t.done).length;
+                return `
+                    <div onclick="selectObject(${obj.id})" class="p-5 bg-white rounded-3xl border border-gray-100 flex items-center justify-between cursor-pointer btn-active shadow-sm">
+                        <div>
+                            <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 mb-1 inline-block uppercase">${obj.type}</span>
+                            <h3 class="font-bold text-gray-800 text-sm uppercase">${obj.name}</h3>
+                            ${openCount > 0 ? `<p class="text-[8px] font-black text-red-500 uppercase mt-1">⚠️ ${openCount} Offen</p>` : `<p class="text-[8px] font-bold text-green-500 uppercase mt-1">✓ Erledigt</p>`}
+                        </div>
+                        ${openCount > 0 ? `<div class="w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center text-[11px] font-bold shadow-lg">${openCount}</div>` : ''}
+                    </div>`;
+            }).join('');
+        }
+
+        function selectObject(id) {
+            activeObjectId = id;
+            const obj = state.objects.find(x => x.id === id);
+            document.getElementById('current-object-name').innerText = obj.name;
+            updateTaskBadge();
+            showView('view-detail');
+        }
+
+        function updateTaskBadge() {
+            const count = state.tasks.filter(t => t.objectId === activeObjectId && !t.done).length;
+            const badge = document.getElementById('detail-task-count');
+            if (!badge) return;
+            if (count > 0) { badge.innerText = count; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
+        }
+
+        function openAction(action) {
+            currentAction = action;
+            photoData = null;
+            signatureData = null;
+            if (action === 'tasks') { renderTasks(); return showView('view-tasks'); }
+            if (action === 'archive') { renderArchive(); return showView('view-archive'); }
+            document.getElementById('disp-user').innerText = state.currentUser?.name || 'Unbekannt';
+            document.getElementById('time-start').value = "";
+            document.getElementById('time-end').value = "";
+            document.getElementById('dur-hrs').value = "";
+            document.getElementById('dur-mins').value = "";
+            populateCostCenterDropdowns();
+            const preview = document.getElementById('photo-preview');
+            preview.innerHTML = '<span class="text-gray-400 text-[10px] font-bold uppercase text-center p-4">Kein Bild erfasst</span>';
+            if (signatureCtx && signatureCanvas) signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            document.getElementById('signature-status').textContent = "Bitte mit Finger oder Stift unterschreiben";
+            document.getElementById('signature-required').classList.remove('hidden');
+            const content = document.getElementById('form-content');
+            if (action === 'inspection') {
+                document.getElementById('form-title').innerText = "Monatsinspektion";
+                content.innerHTML = state.inspectionTasks.map(t => `
+                    <div class="p-4 bg-gray-50 border rounded-2xl space-y-3">
+                        <label class="flex items-center gap-4">
+                            <input type="checkbox" checked class="w-6 h-6 rounded-lg text-orange-600" id="inspect-check-${t.id}">
+                            <span class="text-sm font-bold uppercase text-gray-700">${t.label}</span>
+                        </label>
+                        <textarea id="inspect-comm-${t.id}" placeholder="Kommentar..." class="w-full p-3 bg-white border rounded-xl text-xs font-medium h-16 outline-none resize-none"></textarea>
+                    </div>`).join('');
+            } else {
+                document.getElementById('form-title').innerText = "Mängelmeldung";
+                content.innerHTML = `<textarea id="form-note-single" placeholder="Schadensbeschreibung..." class="w-full p-4 border rounded-2xl h-32 text-sm bg-gray-50 outline-none"></textarea>`;
+            }
+            showView('view-form');
+        }
+
+        window.handleFormSubmission = function() {
+            if (!signatureData) { alert("Bitte leisten Sie eine Unterschrift des Monteurs!"); return; }
+            if (currentAction === 'inspection') {
+                let hasIssues = false;
+                state.inspectionTasks.forEach(t => { if (!document.getElementById(`inspect-check-${t.id}`).checked) hasIssues = true; });
+                if (hasIssues) return document.getElementById('inspection-modal').classList.remove('hidden');
+            }
+            finalizeProtocol(false);
+        };
+
+        function finalizeProtocol(autoTasks) {
+            document.getElementById('inspection-modal').classList.add('hidden');
+            let fullNote = "";
+            if (currentAction === 'inspection') {
+                fullNote = state.inspectionTasks.map(t => {
+                    const status = document.getElementById(`inspect-check-${t.id}`).checked ? "[OK]" : "[MANGEL]";
+                    const comment = document.getElementById(`inspect-comm-${t.id}`).value;
+                    return `${status} ${t.label}${comment ? ' - ' + comment : ''}`;
+                }).join('\n');
+            } else {
+                fullNote = document.getElementById('form-note-single').value || "Keine Beschreibung";
+            }
+            const h = parseInt(document.getElementById('dur-hrs').value) || 0;
+            const m = parseInt(document.getElementById('dur-mins').value) || 0;
+            const totalMins = (h * 60) + m;
+            const protocol = {
+                id: generateId(),
+                objectId: activeObjectId,
+                type: currentAction === 'inspection' ? 'Monatsinspektion' : 'Mängelmeldung',
+                author: state.currentUser.name,
+                timestamp: new Date().toLocaleString('de-DE'),
+                isoTimestamp: new Date().toISOString(),
+                note: fullNote,
+                photo: photoData,
+                signature: signatureData,
+                costCenter: document.getElementById('cost-center').value || 'Nicht definiert',
+                duration: totalMins
+            };
+            state.archive.unshift(protocol);
+            if (autoTasks) {
+                state.tasks.push({ id: generateId(), objectId: activeObjectId, title: "INSTANDSETZUNG: Mängel aus Monatsinspektion", category: 'red', dueDate: 'SOFORT', done: false, date: new Date().toLocaleDateString('de-DE') });
+            }
+            saveState();
+            showToast("PROTOKOLL GESPEICHERT ✓");
+            setTimeout(() => sharePDF(protocol.id), 700);
+            showView('view-detail');
+        }
+
+        function renderArchive() {
+            const objArchive = state.archive.filter(a => a.objectId === activeObjectId);
+            const container = document.getElementById('archive-list');
+            if (!container) return;
+            if (objArchive.length === 0) {
+                container.innerHTML = `<p class="text-center py-8 text-xs font-bold text-gray-300 uppercase">Keine Protokolle vorhanden</p>`;
+                return;
+            }
+            container.innerHTML = objArchive.map(a => `
+                <div class="p-4 bg-gray-50 border rounded-2xl space-y-3 relative">
+                    ${a.isLegalArchive ? '<div class="absolute top-0 right-0 nhf-bg-green text-white text-[7px] px-2 py-0.5 font-bold uppercase rounded-bl-xl">REVISIONSFEST</div>' : ''}
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-[9px] font-bold text-orange-600 uppercase tracking-widest">${a.type}</span>
+                            <p class="text-[10px] font-bold text-gray-400">${a.timestamp}</p>
+                        </div>
+                        <button onclick="downloadPDF('${a.id}')" class="p-2 bg-white border rounded-lg text-orange-600 active:scale-90">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path></svg>
+                        </button>
+                    </div>
+                    <p class="text-xs font-medium text-gray-700 whitespace-pre-line bg-white p-3 rounded-xl border">${a.note}</p>
+                    <p class="text-[8px] font-black text-orange-600 uppercase border-t pt-2">Dauer: ${formatDurationDisplay(a.duration)} | KST: ${a.costCenter} | ${a.author}</p>
+                    ${a.photo ? `<img src="${a.photo}" class="w-full h-32 object-cover rounded-xl mt-2 border">` : ''}
+                    ${a.signature ? `
+                        <div class="mt-3 pt-3 border-t">
+                            <p class="text-[9px] font-bold text-gray-500 mb-1">UNTERSCHRIFT MONTEUR</p>
+                            <img src="${a.signature}" class="border border-gray-200 rounded-2xl max-h-28 w-full object-contain bg-white p-2">
+                        </div>` : ''}
+                </div>`).join('');
+        }
+
+        function generatePDFInstance(id) {
+            const entry = state.archive.find(x => x.id === id);
+            const obj = state.objects.find(x => x.id === entry.objectId);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFillColor(255, 102, 0);
+            doc.rect(0, 0, 210, 38, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(20);
+            doc.text("NHF NETZMANAGEMENT", 105, 18, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text("SERVICEBERICHT", 105, 28, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.text(`Objekt: ${obj.name}`, 20, 52);
+            doc.text(`Typ: ${entry.type}    |    Datum: ${entry.timestamp}`, 20, 60);
+            doc.text(`Dauer: ${formatDurationDisplay(entry.duration)}    |    Kostenstelle: ${entry.costCenter}`, 20, 68);
+            doc.text(`Monteur: ${entry.author}`, 20, 76);
+            doc.line(20, 82, 190, 82);
+            doc.text("BEFUND / MASSNAHMEN:", 20, 92);
+            const splitNote = doc.splitTextToSize(entry.note, 170);
+            doc.text(splitNote, 20, 100);
+            if (entry.photo) {
+                doc.addPage();
+                doc.text("FOTODOKUMENTATION", 20, 20);
+                doc.addImage(entry.photo, 'JPEG', 20, 30, 170, 120);
+            }
+            if (entry.signature) {
+                doc.addPage();
+                doc.setFontSize(14);
+                doc.text("UNTERSCHRIFT MONTEUR", 20, 25);
+                doc.addImage(entry.signature, 'PNG', 25, 40, 160, 75);
+                doc.setFontSize(10);
+                doc.text(`Unterschrieben am: ${entry.timestamp}`, 20, 130);
+                doc.text(`Monteur: ${entry.author}`, 20, 138);
+            }
+            return { doc, obj };
+        }
+
+        async function downloadPDF(id) {
+            const { doc, obj } = generatePDFInstance(id);
+            doc.save(`NHF_Report_${obj.name.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+        }
+
+        async function sharePDF(id) {
+            try {
+                const { doc, obj } = generatePDFInstance(id);
+                const pdfBlob = doc.output('blob');
+                const fileName = `NHF_Report_${obj.name.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+                const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: `NHF Bericht - ${obj.name}` });
+                    showToast("BERICHT ERFOLGREICH GETEILT");
+                } else {
+                    doc.save(fileName);
+                    showToast("PDF HERUNTERGELADEN");
+                }
+            } catch (err) {
+                const { doc, obj } = generatePDFInstance(id);
+                doc.save(`NHF_Report_${obj.name.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+            }
+        }
+
+        function setTaskCategory(cat) {
+            selectedCategory = cat;
+            document.querySelectorAll('#cat-red, #cat-orange, #cat-green').forEach(btn => btn.style.borderColor = 'transparent');
+            const activeBtn = document.getElementById('cat-' + cat);
+            if (activeBtn) activeBtn.style.borderColor = '#ff6600';
+            const dateContainer = document.getElementById('green-date-container');
+            if (dateContainer) dateContainer.classList.toggle('hidden', cat !== 'green');
+        }
+
+        function renderTasks() {
+            const objTasks = state.tasks.filter(t => t.objectId === activeObjectId);
+            const container = document.getElementById('task-list');
+            if (!container) return;
+            if (objTasks.length === 0) {
+                container.innerHTML = `<p class="text-center py-8 text-xs font-bold text-gray-300">Keine offenen Aufträge</p>`;
+                return;
+            }
+            container.innerHTML = objTasks.map(t => `
+                <div class="p-4 bg-white border rounded-2xl flex items-center justify-between shadow-sm border-l-4 ${t.category === 'red' ? 'border-l-red-500' : t.category === 'orange' ? 'border-l-orange-500' : 'border-l-green-500'} ${t.done ? 'opacity-60' : ''}">
+                    <div class="flex-grow pr-4">
+                        <p class="text-[8px] font-black uppercase ${t.category === 'red' ? 'text-red-500' : t.category === 'orange' ? 'text-orange-500' : 'text-green-600'}}">${t.category} • ${t.dueDate}</p>
+                        <p class="text-sm font-bold uppercase text-gray-800">${t.title}</p>
+                    </div>
+                    ${!t.done ? `<button onclick="openCompleteTaskModal('${t.id}')" class="px-4 py-2 bg-green-50 text-green-600 rounded-xl text-[10px] font-bold uppercase border border-green-200">BEENDEN</button>` : `<span class="text-[9px] font-bold text-green-600 bg-green-50 px-3 py-1 rounded">ERLEDIGT</span>`}
+                </div>`).join('');
+        }
+
+        function addTask() {
+            const title = document.getElementById('new-task-title').value.trim();
+            if (!title) { showToast("BESCHREIBUNG FEHLT"); return; }
+            const due = selectedCategory === 'green' ? (document.getElementById('new-task-date').value || 'Termin') : (selectedCategory === 'orange' ? '+14 Tage' : 'SOFORT');
+            state.tasks.unshift({ id: generateId(), objectId: activeObjectId, title, category: selectedCategory, dueDate: due, done: false, date: new Date().toLocaleDateString('de-DE') });
+            document.getElementById('new-task-title').value = '';
+            saveState();
+            renderTasks();
+            showToast("AUFTRAG ERSTELLT");
+        }
+
+        function openCompleteTaskModal(id) {
+            currentTaskToComplete = state.tasks.find(t => t.id === id);
+            document.getElementById('modal-task-title').innerText = currentTaskToComplete.title;
+            document.getElementById('modal-time-start').value = "";
+            document.getElementById('modal-time-end').value = "";
+            document.getElementById('modal-dur-hrs').value = "";
+            document.getElementById('modal-dur-mins').value = "";
+            document.getElementById('modal-note').value = "";
+            populateCostCenterDropdowns();
+            document.getElementById('task-completion-modal').classList.remove('hidden');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('task-completion-modal').classList.add('hidden');
+        }
+
+        function submitTaskCompletion() {
+            if (!currentTaskToComplete) return;
+            currentTaskToComplete.done = true;
+            const h = parseInt(document.getElementById('modal-dur-hrs').value) || 0;
+            const m = parseInt(document.getElementById('modal-dur-mins').value) || 0;
+            const completionRecord = {
+                id: generateId(),
+                objectId: activeObjectId,
+                type: 'Auftragsabschluss',
+                author: state.currentUser.name,
+                timestamp: new Date().toLocaleString('de-DE'),
+                isoTimestamp: new Date().toISOString(),
+                note: `ERLEDIGT: ${currentTaskToComplete.title}\n${document.getElementById('modal-note').value}`,
+                photo: null,
+                signature: null,
+                costCenter: document.getElementById('modal-cost-center').value || 'Nicht definiert',
+                duration: (h * 60) + m,
+                isLegalArchive: true
+            };
+            state.archive.unshift(completionRecord);
+            saveState();
+            closeTaskModal();
+            renderTasks();
+            showToast("AUFTRAG BEENDET");
+            setTimeout(() => sharePDF(completionRecord.id), 600);
+        }
+
+        async function startQRScanner() {
+            showView('view-scanner');
+            html5QrCode = new Html5Qrcode("qr-reader");
+            try {
+                await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (text) => handleScanResult(text));
+            } catch (err) {
+                showToast("KAMERA FEHLER");
+                stopQRScanner();
+            }
+        }
+
+        function stopQRScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => { html5QrCode.clear(); showView('view-dashboard'); }).catch(() => showView('view-dashboard'));
+            } else {
+                showView('view-dashboard');
+            }
+        }
+
+        function handleScanResult(text) {
+            try {
+                const url = new URL(text);
+                const objId = url.searchParams.get('obj');
+                if (objId) {
+                    const found = state.objects.find(o => o.id == objId);
+                    if (found) {
+                        stopQRScanner();
+                        selectObject(found.id);
+                        showToast("OBJEKT GEFUNDEN: " + found.name);
+                    }
+                }
+            } catch (e) { showToast("CODE FEHLER"); }
+        }
+
+        function showQRCode() {
+            const obj = state.objects.find(o => o.id === activeObjectId);
+            document.getElementById('qr-obj-name').innerText = obj.name;
+            document.getElementById('print-obj-name').innerText = obj.name;
+            const container = document.getElementById('qrcode-container');
+            const printContainer = document.getElementById('print-qrcode');
+            container.innerHTML = "";
+            printContainer.innerHTML = "";
+            const qrLink = `${window.location.href.split('?')[0]}?obj=${obj.id}`;
+            new QRCode(container, { text: qrLink, width: 192, height: 192, colorDark: "#ff6600", colorLight: "#ffffff" });
+            new QRCode(printContainer, { text: qrLink, width: 300, height: 300, colorDark: "#000000", colorLight: "#ffffff" });
+            showView('view-qrcode');
+        }
+
+        async function downloadQRCodePDF() {
+            const obj = state.objects.find(o => o.id === activeObjectId);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [100, 100] });
+            const qrCanvas = document.getElementById('qrcode-container').querySelector('canvas');
+            const qrImage = qrCanvas.toDataURL('image/jpeg', 1.0);
+            doc.setFillColor(255, 102, 0);
+            doc.rect(0, 0, 100, 15, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.text("NHF NETZMANAGEMENT", 50, 9, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(14);
+            doc.text(obj.name.toUpperCase(), 50, 28, { align: 'center' });
+            doc.addImage(qrImage, 'JPEG', 25, 38, 50, 50);
+            doc.save(`Label_${obj.name.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+        }
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                document.getElementById('video-feed').srcObject = stream;
+                document.getElementById('view-camera').classList.remove('hidden');
+            } catch (e) { showToast("KAMERA ZUGRIFF VERWEIGERT"); }
+        }
+
+        function stopCamera() {
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            document.getElementById('view-camera').classList.add('hidden');
+        }
+
+        function takePhoto() {
+            const v = document.getElementById('video-feed');
+            const c = document.getElementById('photo-canvas');
+            c.width = v.videoWidth; c.height = v.videoHeight;
+            c.getContext('2d').drawImage(v, 0, 0);
+            photoData = c.toDataURL('image/jpeg', 0.7);
+            document.getElementById('photo-preview').innerHTML = `<img src="${photoData}" class="w-full h-full object-cover">`;
+            stopCamera();
+        }
+
+        function showAdminTools() {
+            renderAdminLists();
+            showView('view-admin');
+        }
+
+        function renderAdminLists() {
+            const pending = state.users.filter(u => u.isApproved === false);
+            const pendingContainer = document.getElementById('admin-pending-list');
+            if (pending.length === 0) {
+                pendingContainer.innerHTML = `<p class="text-xs text-gray-400 italic py-2 text-center">Keine ausstehenden Anfragen</p>`;
+            } else {
+                pendingContainer.innerHTML = pending.map(u => `
+                    <div class="flex justify-between items-center p-3 bg-orange-50/50 border border-orange-100 rounded-xl">
+                        <div><span class="text-xs font-bold">${u.name}</span><span class="block text-[8px] text-orange-600">${u.role}</span></div>
+                        <div class="flex gap-1.5">
+                            <button onclick="approveUser('${u.name}')" class="px-2.5 py-1.5 bg-green-600 text-white text-[9px] font-bold uppercase rounded-lg">Freigeben</button>
+                            <button onclick="rejectUser('${u.name}')" class="px-2.5 py-1.5 bg-red-500 text-white text-[9px] font-bold uppercase rounded-lg">Ablehnen</button>
+                        </div>
+                    </div>`).join('');
+            }
+            const ccContainer = document.getElementById('admin-cost-center-list');
+            ccContainer.innerHTML = state.costCenters.map(cc => `
+                <div class="flex justify-between items-center p-3 bg-white border rounded-xl">
+                    <span class="text-xs font-bold">KST ${cc}</span>
+                    <button onclick="deleteCostCenter('${cc}')" class="text-red-500 text-[10px] font-bold">Löschen</button>
+                </div>`).join('');
+            const userContainer = document.getElementById('admin-user-list');
+            userContainer.innerHTML = state.users.filter(u => u.isApproved).map(u => `
+                <div class="flex justify-between items-center p-3 bg-white border rounded-xl">
+                    <div><span class="text-xs font-bold">${u.name} ${u.role === 'Admin' ? '⭐' : ''}</span><span class="block text-[8px] text-gray-400">${u.role}</span></div>
+                    ${u.name !== 'Admin' ? `<button onclick="deleteUser('${u.name}')" class="text-red-500 text-[10px] font-bold">Löschen</button>` : `<span class="text-[8px] text-gray-400">System</span>`}
+                </div>`).join('');
+            const objContainer = document.getElementById('admin-object-list');
+            objContainer.innerHTML = state.objects.map(o => `
+                <div class="flex justify-between items-center p-3 bg-white border rounded-xl">
+                    <span class="text-xs font-bold">${o.type}: ${o.name}</span>
+                    <button onclick="deleteObject(${o.id})" class="text-red-500 text-[10px] font-bold">Löschen</button>
+                </div>`).join('');
+        }
+
+        function addCostCenter() {
+            const val = document.getElementById('new-cost-center').value.trim();
+            if (!val || state.costCenters.includes(val)) { showToast("Ungültig oder bereits vorhanden"); return; }
+            state.costCenters.push(val);
+            state.costCenters.sort();
+            document.getElementById('new-cost-center').value = "";
+            saveState();
+            renderAdminLists();
+        }
+
+        function deleteCostCenter(cc) {
+            state.costCenters = state.costCenters.filter(c => c !== cc);
+            saveState();
+            renderAdminLists();
+        }
+
+        function approveUser(name) {
+            const user = state.users.find(u => u.name === name);
+            if (user) { user.isApproved = true; saveState(); renderAdminLists(); showToast("FREIGEGEBEN"); }
+        }
+
+        function rejectUser(name) {
+            state.users = state.users.filter(u => u.name !== name);
+            saveState();
+            renderAdminLists();
+        }
+
+        async function createUser() {
+            const n = document.getElementById('new-user-name').value.trim();
+            const p = document.getElementById('new-user-pass').value;
+            const r = document.getElementById('new-user-role').value;
+            if (!n || !p) return;
+            state.users.push({ name: n, pass: await hashPassword(p), role: r, isApproved: true });
+            document.getElementById('new-user-name').value = "";
+            document.getElementById('new-user-pass').value = "";
+            saveState();
+            renderAdminLists();
+            showToast("KONTO ERSTELLT");
+        }
+
+        function deleteUser(name) {
+            state.users = state.users.filter(u => u.name !== name);
+            saveState();
+            renderAdminLists();
+        }
+
+        function createObject() {
+            const n = document.getElementById('new-obj-name').value.trim();
+            const t = document.getElementById('new-obj-type').value;
+            if (!n) return;
+            state.objects.push({ id: Date.now(), name: n, type: t });
+            document.getElementById('new-obj-name').value = "";
+            saveState();
+            renderAdminLists();
+            renderObjectList();
+        }
+
+        function deleteObject(id) {
+            state.objects = state.objects.filter(o => o.id !== id);
+            saveState();
+            renderAdminLists();
+            renderObjectList();
+        }
+
+        function createSystemBackup() {
+            const backupData = JSON.stringify(state, null, 2);
+            const blob = new Blob([backupData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const dateStr = new Date().toISOString().split('T')[0];
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `NHF_Backup_${dateStr}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("BACKUP ERFOLGREICH");
+        }
+
+        function restoreSystemBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported && Array.isArray(imported.users) && Array.isArray(imported.objects)) {
+                        if (confirm("Backup wirklich einspielen? Alle aktuellen Daten werden überschrieben!")) {
+                            state = imported;
+                            saveState();
+                            showToast("IMPORT ERFOLGREICH - Seite wird neu geladen");
+                            setTimeout(() => location.reload(), 1200);
+                        }
+                    } else {
+                        showToast("UNGÜLTIGE BACKUP-DATEI");
+                    }
+                } catch (err) { showToast("FEHLER BEIM LESEN"); }
+            };
+            reader.readAsText(file);
+        }
+
+        window.onload = function() {
+            initSystem();
+            setTimeout(() => { setupSignaturePad(); }, 600);
+        };
+    </script>
+</body>
+</html>
