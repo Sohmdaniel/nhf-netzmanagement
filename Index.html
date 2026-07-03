@@ -1,0 +1,1592 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NHF Netzmanagement</title>
+<meta name="theme-color" content="#ff6600">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NHF Service">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+* { -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Inter', sans-serif; background: #f3f4f6; user-select: none; }
+.nhf-orange { color: #ff6600; }
+.nhf-bg-orange { background-color: #ff6600; }
+.nhf-green { color: #009933; }
+.nhf-bg-green { background-color: #009933; }
+.nhf-dark-green { color: #006633; }
+.nhf-bg-dark-green { background-color: #006633; }
+.btn-active:active { transform: scale(0.97); }
+.modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+.error-shake { animation: shake 0.4s ease-in-out; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+input,textarea,select { font-size:16px!important; }
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:10px; }
+.pt-safe { padding-top: env(safe-area-inset-top,0px); }
+canvas.sig-canvas { touch-action:none; cursor:crosshair; }
+.toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%); background:#1f2937; color:white; padding:0.75rem 1.5rem; border-radius:1rem; font-size:0.7rem; font-weight:700; letter-spacing:0.08em; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; white-space:nowrap; }
+.warn-badge { background: #fef3c7; border: 1px solid #f59e0b; }
+.warn-text { color: #92400e; }
+@media print { .no-print{display:none!important} }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div id="toast-el" class="toast">STATUS</div>
+
+<div id="app" class="max-w-md mx-auto min-h-screen flex flex-col bg-gray-50 shadow-2xl relative no-print">
+
+<!-- ===== LOGIN ===== -->
+<div id="view-login" class="view-panel flex-grow flex flex-col justify-center p-8 bg-white text-center">
+  <div class="mb-8">
+    <div class="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-inner">
+      <svg class="w-10 h-10 nhf-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+    </div>
+    <h1 class="text-2xl font-extrabold nhf-orange tracking-tight uppercase">NHF Service Login</h1>
+    <p class="text-gray-400 mt-1 text-xs font-semibold uppercase tracking-widest">Netzgesellschaft Heilbronn</p>
+  </div>
+  <div class="space-y-4">
+    <div class="text-left">
+      <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Benutzername</label>
+      <input type="text" id="l-user" placeholder="Benutzername" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none mt-1">
+    </div>
+    <div class="text-left">
+      <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Passwort</label>
+      <input type="password" id="l-pass" placeholder="Passwort" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none mt-1">
+    </div>
+    <button onclick="handleLogin()" class="w-full nhf-bg-orange text-white font-bold py-4 rounded-2xl shadow-lg btn-active uppercase text-xs tracking-widest mt-2">Anmelden</button>
+    <button onclick="showView('view-register')" class="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-2xl text-xs uppercase tracking-widest">Registrieren</button>
+    <p id="l-status" class="text-[10px] font-bold text-red-500 uppercase min-h-4"></p>
+  </div>
+  <p class="text-[9px] text-gray-300 mt-8">Build 6.0 • NHF Final</p>
+</div>
+
+<!-- ===== REGISTER ===== -->
+<div id="view-register" class="view-panel hidden flex-grow flex flex-col justify-center p-8 bg-white text-center">
+  <div class="mb-6">
+    <h1 class="text-2xl font-extrabold nhf-orange tracking-tight uppercase">Registrierung</h1>
+    <p class="text-gray-400 mt-1 text-xs font-semibold uppercase tracking-widest">Zutritt anfordern</p>
+  </div>
+  <div class="space-y-4">
+    <input type="text" id="r-user" placeholder="Benutzername" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none">
+    <input type="password" id="r-pass" placeholder="Passwort" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none">
+    <select id="r-role" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none text-sm font-semibold text-gray-700">
+      <option value="Monteur">Monteur (Eingeschränkt)</option>
+      <option value="Admin">Administrator (Vollzugriff)</option>
+    </select>
+    <button onclick="handleRegister()" class="w-full nhf-bg-orange text-white font-bold py-4 rounded-2xl shadow-lg btn-active uppercase text-xs tracking-widest">Anfrage senden</button>
+    <button onclick="showView('view-login')" class="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-2xl text-xs uppercase tracking-widest">Zurück</button>
+    <p id="r-status" class="text-[10px] font-bold text-red-500 uppercase min-h-4"></p>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="view-dashboard" class="view-panel hidden flex-grow flex flex-col">
+  <header class="p-5 bg-white border-b flex justify-between items-center sticky top-0 z-10 pt-safe shadow-sm">
+    <div>
+      <p class="text-[10px] font-bold text-gray-400 tracking-widest uppercase">Netzmanagement</p>
+      <h2 class="text-lg font-extrabold nhf-orange">Objekt-Übersicht</h2>
+    </div>
+    <div class="flex gap-2">
+      <button id="btn-admin" onclick="showAdminPanel()" class="hidden p-2.5 bg-gray-50 text-gray-500 rounded-xl border">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </button>
+      <button onclick="logout()" class="p-2.5 bg-red-50 text-red-500 rounded-xl border border-red-100">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      </button>
+    </div>
+  </header>
+  <div class="p-4 bg-white border-b flex gap-2">
+    <input type="text" id="search-bar" oninput="renderObjectList()" placeholder="Objekt suchen..." class="flex-grow p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-500">
+    <button onclick="startQRScanner()" class="p-3 nhf-bg-orange text-white rounded-xl shadow active:scale-95">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M4 8h8M4 16h8M4 20h4M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z"/></svg>
+    </button>
+  </div>
+  <div id="object-list" class="p-4 space-y-3 overflow-y-auto flex-grow"></div>
+</div>
+
+<!-- ===== DETAIL / KONSOLE ===== -->
+<div id="view-detail" class="view-panel hidden flex-grow flex flex-col">
+  <header class="p-5 bg-white border-b flex items-center gap-3 sticky top-0 z-10 pt-safe shadow-sm">
+    <button onclick="showView('view-dashboard')" class="p-2.5 bg-gray-50 rounded-2xl border">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="flex-grow overflow-hidden">
+      <h2 id="detail-obj-name" class="text-base font-extrabold nhf-orange truncate">Objektname</h2>
+      <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Management-Konsole</p>
+    </div>
+    <button onclick="openObjSettings()" class="p-2 bg-gray-50 rounded-xl border text-gray-500">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </button>
+  </header>
+
+  <!-- 30-Tage Warnung -->
+  <div id="detail-warn-bar" class="hidden mx-4 mt-4 p-3 warn-badge rounded-2xl flex items-center gap-3">
+    <span class="text-lg">⚠️</span>
+    <div>
+      <p class="text-[10px] font-black warn-text uppercase tracking-wide">Monatsinspektion fällig!</p>
+      <p id="detail-warn-text" class="text-[9px] warn-text font-semibold">Letzte Inspektion vor X Tagen</p>
+    </div>
+  </div>
+
+  <div class="p-5 space-y-3 overflow-y-auto flex-grow">
+
+    <!-- Monatsinspektion -->
+    <button onclick="openAction('inspection')" class="w-full flex items-center gap-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-orange-300 transition-all text-left btn-active">
+      <div class="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600 flex-shrink-0">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      </div>
+      <div class="flex-grow">
+        <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Intervallprüfung</span>
+        <span class="block font-bold text-sm uppercase text-gray-800">Monatsinspektion</span>
+        <span id="detail-last-insp" class="block text-[9px] text-gray-400 mt-0.5"></span>
+      </div>
+    </button>
+
+    <!-- Mängelmeldung -->
+    <button onclick="openAction('defect')" class="w-full flex items-center gap-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-red-300 transition-all text-left btn-active">
+      <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 flex-shrink-0">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </div>
+      <div class="flex-grow">
+        <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Meldewesen</span>
+        <span class="block font-bold text-sm text-red-600 uppercase">Mängelmeldung</span>
+      </div>
+    </button>
+
+    <!-- VE Vergabe -->
+    <button onclick="openAction('ve')" class="w-full flex items-center gap-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-green-300 transition-all text-left btn-active relative">
+      <div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-700 flex-shrink-0">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      </div>
+      <div class="flex-grow">
+        <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Sicherheitsnachweis</span>
+        <span class="block font-bold text-sm text-green-700 uppercase">VE Vergabe</span>
+      </div>
+      <div id="detail-ve-count" class="hidden absolute top-3 right-3 bg-green-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full"></div>
+    </button>
+
+    <!-- Aufgaben -->
+    <button onclick="openAction('tasks')" class="w-full flex items-center gap-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-blue-300 transition-all text-left btn-active relative">
+      <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 flex-shrink-0">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+      </div>
+      <div class="flex-grow">
+        <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Auftragssteuerung</span>
+        <span class="block font-bold text-sm uppercase text-gray-800">Aufgaben-Board</span>
+      </div>
+      <div id="detail-task-count" class="hidden absolute top-3 right-3 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full"></div>
+    </button>
+
+    <!-- Archiv -->
+    <button onclick="openAction('archive')" class="w-full flex items-center gap-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-gray-300 transition-all text-left btn-active">
+      <div class="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-600 flex-shrink-0">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+      </div>
+      <div class="flex-grow">
+        <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Dokumentation</span>
+        <span class="block font-bold text-sm uppercase text-gray-800">Archiv & Protokolle</span>
+      </div>
+    </button>
+
+    <hr class="border-gray-100">
+
+    <!-- QR Code -->
+    <button onclick="showQRCode()" class="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-200 hover:bg-white transition-all text-left btn-active">
+      <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-gray-600 border">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M4 8h8M4 16h8M4 20h4M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z"/></svg>
+      </div>
+      <div>
+        <span class="block font-bold text-sm uppercase text-gray-700">QR-Code Objekt</span>
+        <span class="block text-[9px] text-gray-400 uppercase">Vor-Ort Identifikation</span>
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- ===== MONATSINSPEKTION / MÄNGELMELDUNG FORM ===== -->
+<div id="view-form" class="view-panel hidden flex-grow flex flex-col bg-white">
+  <header class="p-5 border-b flex items-center gap-3 bg-white sticky top-0 z-10 pt-safe">
+    <button onclick="showView('view-detail')" class="p-2.5 bg-gray-50 rounded-xl border">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <h2 id="form-title" class="text-sm font-extrabold nhf-orange uppercase tracking-wider">Erfassung</h2>
+  </header>
+  <div class="p-5 space-y-5 overflow-y-auto flex-grow">
+
+    <!-- Meta -->
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-gray-50 p-3 rounded-xl border">
+        <p class="text-[9px] font-bold text-gray-400 uppercase">Benutzer</p>
+        <p id="form-user" class="font-bold text-xs text-gray-800 mt-0.5">-</p>
+      </div>
+      <div class="bg-gray-50 p-3 rounded-xl border">
+        <p class="text-[9px] font-bold text-gray-400 uppercase">Kostenstelle</p>
+        <select id="form-kst" class="w-full bg-transparent font-bold text-xs text-gray-800 outline-none mt-0.5"></select>
+      </div>
+    </div>
+
+    <!-- Zeiterfassung -->
+    <div class="space-y-2">
+      <p class="text-[10px] font-bold text-gray-400 uppercase ml-1">Arbeitszeit & Dauer</p>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="bg-gray-50 p-3 rounded-xl border">
+          <p class="text-[8px] font-bold text-gray-400 uppercase">Beginn</p>
+          <input type="time" id="form-start" oninput="calcDuration('form-')" class="w-full bg-transparent font-bold text-sm text-gray-800 outline-none mt-1">
+        </div>
+        <div class="bg-gray-50 p-3 rounded-xl border">
+          <p class="text-[8px] font-bold text-gray-400 uppercase">Ende</p>
+          <input type="time" id="form-end" oninput="calcDuration('form-')" class="w-full bg-transparent font-bold text-sm text-gray-800 outline-none mt-1">
+        </div>
+      </div>
+      <div class="bg-orange-50 p-3 rounded-xl border border-orange-100 flex items-center justify-between">
+        <p class="text-[9px] font-bold nhf-orange uppercase">Gesamtdauer</p>
+        <div class="flex items-center gap-2">
+          <input type="number" id="form-hrs" placeholder="0" min="0" class="w-10 bg-white border border-gray-200 rounded-lg p-1 text-center font-bold text-xs text-orange-800 outline-none">
+          <span class="text-[9px] font-bold text-orange-400">Std</span>
+          <input type="number" id="form-mins" placeholder="0" min="0" max="59" class="w-10 bg-white border border-gray-200 rounded-lg p-1 text-center font-bold text-xs text-orange-800 outline-none">
+          <span class="text-[9px] font-bold text-orange-400">Min</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dynamischer Formular-Inhalt -->
+    <div id="form-content" class="space-y-3 border-t pt-4"></div>
+
+    <!-- Foto -->
+    <div class="space-y-2">
+      <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Fotobeleg</label>
+      <div id="photo-preview" class="w-full aspect-video bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden">
+        <span class="text-gray-400 text-[10px] font-bold uppercase">Kein Bild erfasst</span>
+      </div>
+      <button onclick="startCamera()" class="w-full py-3 bg-gray-100 rounded-xl text-xs font-bold text-gray-600 uppercase flex items-center justify-center gap-2 border border-gray-200 active:bg-gray-200">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
+        Kamera öffnen
+      </button>
+    </div>
+
+    <!-- Unterschrift -->
+    <div class="space-y-2 pt-2 border-t">
+      <div class="flex justify-between items-center">
+        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Unterschrift Monteur <span class="text-red-500">*</span></label>
+        <span id="sig-req-label" class="text-[9px] font-bold text-red-500 uppercase">Erforderlich</span>
+      </div>
+      <div class="bg-white border-2 border-gray-200 rounded-2xl overflow-hidden relative shadow-inner">
+        <canvas id="sig-canvas" width="380" height="160" class="sig-canvas w-full"></canvas>
+        <button onclick="clearSig()" class="absolute bottom-2 right-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[10px] font-bold uppercase rounded-xl">Löschen</button>
+      </div>
+      <p id="sig-status" class="text-[10px] text-gray-400 text-center">Bitte mit Finger oder Stift unterschreiben</p>
+    </div>
+
+    <button onclick="handleFormSubmit()" class="w-full nhf-bg-orange text-white font-bold py-5 rounded-2xl shadow-xl btn-active uppercase text-xs tracking-widest">Abschließen & Senden</button>
+  </div>
+</div>
+
+<!-- ===== VE VERGABE FORM ===== -->
+<div id="view-ve" class="view-panel hidden flex-grow flex flex-col bg-white">
+  <header class="p-5 border-b flex items-center gap-3 bg-white sticky top-0 z-10 pt-safe">
+    <button onclick="showView('view-detail')" class="p-2.5 bg-gray-50 rounded-xl border">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <div>
+      <h2 class="text-sm font-extrabold text-green-700 uppercase tracking-wider">VE Vergabe</h2>
+      <p class="text-[9px] text-gray-400 font-semibold uppercase">Verfügungserlaubnis • DIN VDE 0105-100</p>
+    </div>
+  </header>
+  <div class="p-5 space-y-5 overflow-y-auto flex-grow">
+
+    <!-- Automatisch -->
+    <div class="bg-green-50 border border-green-200 p-4 rounded-2xl">
+      <p class="text-[9px] font-bold text-green-700 uppercase mb-2">Automatisch übernommen</p>
+      <div class="grid grid-cols-3 gap-2 text-xs">
+        <div><span class="text-gray-500 text-[9px] block">Objekt</span><span id="ve-obj" class="font-bold text-gray-800">-</span></div>
+        <div><span class="text-gray-500 text-[9px] block">Aussteller</span><span id="ve-aussteller" class="font-bold text-gray-800">-</span></div>
+        <div><span class="text-gray-500 text-[9px] block">Datum</span><span id="ve-datum" class="font-bold text-gray-800">-</span></div>
+      </div>
+    </div>
+
+    <!-- Dokumenten-ID -->
+    <div class="space-y-1">
+      <label class="text-[10px] font-bold text-gray-400 uppercase">VE-Nummer / Dokumenten-ID</label>
+      <input type="text" id="ve-number" placeholder="z.B. VE-2026-0847" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+    </div>
+
+    <!-- Zeitraum -->
+    <div class="grid grid-cols-2 gap-3">
+      <div class="space-y-1">
+        <label class="text-[10px] font-bold text-gray-400 uppercase">Uhrzeit Erteilung</label>
+        <input type="time" id="ve-time-start" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+      </div>
+      <div class="space-y-1">
+        <label class="text-[10px] font-bold text-gray-400 uppercase">Gültig bis</label>
+        <input type="time" id="ve-time-end" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+      </div>
+    </div>
+
+    <hr class="border-gray-100">
+    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">1. Aussteller (Netzführende Stelle)</p>
+
+    <div class="space-y-3">
+      <input type="text" id="ve-aussteller-name" placeholder="Name, Vorname" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+      <input type="text" id="ve-aussteller-funktion" placeholder="Funktion / Rolle" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+      <input type="tel" id="ve-aussteller-tel" placeholder="Telefon / Mobil" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+    </div>
+
+    <hr class="border-gray-100">
+    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">2. Empfänger (Arbeitsverantwortlicher)</p>
+
+    <div class="space-y-3">
+      <input type="text" id="ve-emp-name" placeholder="Name, Vorname" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+      <input type="text" id="ve-emp-firma" placeholder="Firma / Organisation" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+      <input type="text" id="ve-emp-rolle" placeholder="Rolle / Qualifikation (z.B. Elektrofachkraft)" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+      <input type="tel" id="ve-emp-tel" placeholder="Erreichbarkeit Tel." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+    </div>
+
+    <hr class="border-gray-100">
+    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">3. VE-Bereich & Schaltzustand</p>
+
+    <div class="space-y-3">
+      <div>
+        <label class="text-[10px] font-bold text-gray-400 uppercase">Spannungsebene</label>
+        <select id="ve-spannung" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-semibold text-gray-700 outline-none focus:ring-2 focus:ring-green-500 mt-1">
+          <option value="NS">Niederspannung (NS / VE-N)</option>
+          <option value="MS">Mittelspannung (MS)</option>
+          <option value="HS">Hochspannung (HS)</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-[10px] font-bold text-gray-400 uppercase">Bezeichnung VE-Bereich</label>
+        <textarea id="ve-bereich" placeholder="z.B. VE-Feld 05 Trafo 1, VE-N Abgang XY..." rows="2" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 resize-none mt-1"></textarea>
+      </div>
+    </div>
+
+    <!-- Schaltzustand Checkboxen -->
+    <div class="bg-gray-50 p-4 rounded-2xl border space-y-2">
+      <p class="text-[9px] font-bold text-gray-500 uppercase mb-2">Schaltzustand bei Erteilung (AfdN 1.6.3)</p>
+      <label class="flex items-center gap-3 text-xs font-semibold text-gray-700"><input type="checkbox" id="ve-sch1" class="w-4 h-4 rounded text-green-600"> Freigeschaltet an allen relevanten Schaltstellen</label>
+      <label class="flex items-center gap-3 text-xs font-semibold text-gray-700"><input type="checkbox" id="ve-sch2" class="w-4 h-4 rounded text-green-600"> Aufgetrennt (Trennstrecken hergestellt)</label>
+      <label class="flex items-center gap-3 text-xs font-semibold text-gray-700"><input type="checkbox" id="ve-sch3" class="w-4 h-4 rounded text-green-600"> Geerdet und kurzgeschlossen</label>
+    </div>
+
+    <hr class="border-gray-100">
+    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">5. Sicherheitsregeln (DIN VDE 0105-100)</p>
+
+    <div class="bg-gray-50 p-4 rounded-2xl border space-y-2">
+      <label class="flex items-center gap-3 text-xs font-semibold text-gray-700"><input type="checkbox" id="ve-s1" class="w-4 h-4 rounded text-green-600"> 1. Freischalten</label>
+      <label class="flex items-center gap-3 text-xs font-semibold text-gray-700"><input type="checkbox" id="ve-s2" class="w-4 h-4 rounded text-green-600"> 2. Gegen Wiedereinschalten sichern</label>
+      <label class="flex items-center gap-3 text-xs font-semibold text-gray-700"><input type="checkbox" id="ve-s3" class="w-4 h-4 rounded text-green-600"> 3. Spannungsfreiheit feststellen</label>
+      <label class="flex items-center gap-3 text-xs font-semibold text-gray-700"><input type="checkbox" id="ve-s4" class="w-4 h-4 rounded text-green-600"> 4. Erden und Kurzschließen</label>
+      <label class="flex items-center gap-3 text-xs font-semibold text-gray-700"><input type="checkbox" id="ve-s5" class="w-4 h-4 rounded text-green-600"> 5. Benachbarte Teile abdecken</label>
+    </div>
+
+    <!-- Unterschriften -->
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <label class="text-[10px] font-bold text-gray-500 uppercase">Unterschrift Empfänger</label>
+        <div class="bg-white border-2 border-gray-200 rounded-2xl overflow-hidden relative shadow-inner">
+          <canvas id="ve-sig-emp" width="380" height="130" class="sig-canvas w-full"></canvas>
+          <button onclick="clearVESig('emp')" class="absolute bottom-2 right-2 px-3 py-1 bg-gray-100 text-gray-600 text-[9px] font-bold uppercase rounded-xl">Löschen</button>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <label class="text-[10px] font-bold text-gray-500 uppercase">Unterschrift Aussteller</label>
+        <div class="bg-white border-2 border-gray-200 rounded-2xl overflow-hidden relative shadow-inner">
+          <canvas id="ve-sig-aus" width="380" height="130" class="sig-canvas w-full"></canvas>
+          <button onclick="clearVESig('aus')" class="absolute bottom-2 right-2 px-3 py-1 bg-gray-100 text-gray-600 text-[9px] font-bold uppercase rounded-xl">Löschen</button>
+        </div>
+      </div>
+    </div>
+
+    <hr class="border-gray-100">
+    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">7. Rückgabe (nach Abschluss)</p>
+    <div class="space-y-3">
+      <input type="datetime-local" id="ve-rueck-zeit" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+      <textarea id="ve-rueck-zustand" placeholder="Zustand bei Rückgabe (z.B. Arbeitserden entfernt, Anlage betriebsbereit)..." rows="2" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 resize-none"></textarea>
+    </div>
+
+    <button onclick="submitVE()" class="w-full py-5 nhf-bg-dark-green text-white rounded-2xl font-bold uppercase text-xs tracking-widest shadow-xl btn-active">VE PDF erzeugen & sichern</button>
+  </div>
+</div>
+
+<!-- ===== TASKS ===== -->
+<div id="view-tasks" class="view-panel hidden flex-grow flex flex-col bg-white">
+  <header class="p-5 border-b flex items-center gap-3 bg-white sticky top-0 z-10 pt-safe">
+    <button onclick="showView('view-detail')" class="p-2.5 bg-gray-50 rounded-xl border">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <h2 class="text-sm font-extrabold nhf-orange uppercase tracking-wider">Offene Aufträge</h2>
+  </header>
+  <div class="p-5 space-y-5 flex-grow overflow-y-auto">
+    <div class="bg-orange-50 p-5 rounded-3xl border border-orange-100 space-y-3">
+      <p class="text-[10px] font-bold text-orange-800 uppercase">Neuer Auftrag</p>
+      <input type="text" id="new-task-title" placeholder="Was ist zu tun?" class="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none shadow-sm focus:ring-2 focus:ring-orange-500">
+      <div class="grid grid-cols-3 gap-2">
+        <button onclick="setTaskCat('red')" id="cat-red" class="py-2.5 rounded-xl text-[9px] font-bold border-2 border-transparent bg-white text-red-600 uppercase shadow-sm">Gefahr</button>
+        <button onclick="setTaskCat('orange')" id="cat-orange" class="py-2.5 rounded-xl text-[9px] font-bold border-2 border-transparent bg-white text-orange-600 uppercase shadow-sm">Warnung</button>
+        <button onclick="setTaskCat('green')" id="cat-green" class="py-2.5 rounded-xl text-[9px] font-bold border-2 border-transparent bg-white nhf-green uppercase shadow-sm">Termin</button>
+      </div>
+      <div id="task-date-wrap" class="hidden">
+        <input type="date" id="new-task-date" class="w-full p-3 bg-white border rounded-xl text-xs font-bold outline-none text-gray-700">
+      </div>
+      <button onclick="addTask()" class="w-full py-4 nhf-bg-orange text-white rounded-2xl font-bold uppercase text-xs tracking-widest shadow-lg active:scale-95">+ Auftrag hinzufügen</button>
+    </div>
+    <div id="task-list" class="space-y-3"></div>
+  </div>
+</div>
+
+<!-- ===== ARCHIV ===== -->
+<div id="view-archive" class="view-panel hidden flex-grow flex flex-col bg-white">
+  <header class="p-5 border-b flex items-center gap-3 bg-white sticky top-0 z-10 pt-safe">
+    <button onclick="showView('view-detail')" class="p-2.5 bg-gray-50 rounded-xl border">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <h2 class="text-sm font-extrabold nhf-orange uppercase tracking-wider">Protokoll-Archiv</h2>
+  </header>
+  <div id="archive-list" class="p-5 space-y-3 overflow-y-auto flex-grow"></div>
+</div>
+
+<!-- ===== QR CODE ===== -->
+<div id="view-qrcode" class="view-panel hidden flex-grow flex flex-col bg-white">
+  <header class="p-5 border-b flex items-center gap-3 bg-white sticky top-0 z-10 pt-safe">
+    <button onclick="showView('view-detail')" class="p-2.5 bg-gray-50 rounded-xl border">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <h2 class="text-sm font-extrabold nhf-orange uppercase tracking-wider">Digitaler Zwilling</h2>
+  </header>
+  <div class="p-8 flex flex-col items-center flex-grow space-y-6 text-center">
+    <div id="qrcode-container" class="p-6 bg-white border-2 border-gray-100 rounded-3xl shadow-xl"></div>
+    <h3 id="qr-obj-name" class="text-xl font-extrabold nhf-orange uppercase">-</h3>
+    <div class="w-full space-y-2">
+      <button onclick="downloadQRPDF()" class="w-full py-4 nhf-bg-orange text-white rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-lg btn-active">QR-Code als PDF</button>
+      <button onclick="window.print()" class="w-full py-4 bg-gray-100 text-gray-600 border border-gray-200 rounded-2xl font-bold uppercase text-[10px] tracking-widest">Direkt Drucken</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCANNER ===== -->
+<div id="view-scanner" class="view-panel hidden fixed inset-0 z-[120] bg-black flex flex-col no-print">
+  <div class="p-5 bg-black/80 flex items-center justify-between text-white pt-safe">
+    <h2 class="text-lg font-bold uppercase">Objekt scannen</h2>
+    <button onclick="stopQRScanner()" class="p-3 bg-white/10 rounded-full">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div id="qr-reader" class="flex-grow flex items-center justify-center"></div>
+</div>
+
+<!-- ===== OBJEKT EINSTELLUNGEN ===== -->
+<div id="view-obj-settings" class="view-panel hidden flex-grow flex flex-col bg-white">
+  <header class="p-5 border-b flex items-center gap-3 bg-white sticky top-0 z-10 pt-safe">
+    <button onclick="showView('view-detail')" class="p-2.5 bg-gray-50 rounded-xl border">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <div>
+      <h2 id="objset-title" class="text-sm font-extrabold nhf-orange uppercase tracking-wider">Objekt-Einstellungen</h2>
+      <p class="text-[9px] text-gray-400 font-semibold uppercase">Trafo & Zählerwerte</p>
+    </div>
+  </header>
+  <div class="p-5 space-y-5 overflow-y-auto flex-grow">
+
+    <!-- Trafo -->
+    <div class="bg-orange-50 border border-orange-100 p-4 rounded-2xl space-y-3">
+      <p class="text-[10px] font-black text-orange-700 uppercase tracking-wide">Trafo-Stufensteller</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-[9px] font-bold text-gray-400 uppercase">Trafo 1 - Stufe</label>
+          <input type="text" id="os-t1" placeholder="z.B. +2" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-400 mt-1">
+        </div>
+        <div>
+          <label class="text-[9px] font-bold text-gray-400 uppercase">Trafo 2 - Stufe</label>
+          <input type="text" id="os-t2" placeholder="z.B. 0" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-400 mt-1">
+        </div>
+        <div>
+          <label class="text-[9px] font-bold text-gray-400 uppercase">Trafo 3 - Stufe</label>
+          <input type="text" id="os-t3" placeholder="-" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-400 mt-1">
+        </div>
+        <div>
+          <label class="text-[9px] font-bold text-gray-400 uppercase">Trafo 4 - Stufe</label>
+          <input type="text" id="os-t4" placeholder="-" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-400 mt-1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Zähler -->
+    <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl space-y-3">
+      <p class="text-[10px] font-black text-blue-700 uppercase tracking-wide">Zählerstände</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-[9px] font-bold text-gray-400 uppercase">Zähler 1.8.0 (kWh)</label>
+          <input type="number" id="os-z180" placeholder="0.000" step="0.001" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400 mt-1">
+        </div>
+        <div>
+          <label class="text-[9px] font-bold text-gray-400 uppercase">Zähler 2.8.0 (kWh)</label>
+          <input type="number" id="os-z280" placeholder="0.000" step="0.001" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400 mt-1">
+        </div>
+      </div>
+      <p class="text-[9px] text-blue-600 font-semibold">Diese Werte werden bei Monatsinspektion automatisch übernommen</p>
+    </div>
+
+    <!-- Anzahl Trafos -->
+    <div class="bg-gray-50 border p-4 rounded-2xl">
+      <label class="text-[10px] font-bold text-gray-500 uppercase">Anzahl Trafos / Stufensteller</label>
+      <select id="os-trafo-count" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 outline-none mt-2">
+        <option value="0">Kein Trafo / nicht relevant</option>
+        <option value="1">1 Trafo</option>
+        <option value="2">2 Trafos</option>
+        <option value="3">3 Trafos</option>
+        <option value="4">4 Trafos</option>
+      </select>
+    </div>
+
+    <button onclick="saveObjSettings()" class="w-full py-4 nhf-bg-orange text-white rounded-2xl font-bold uppercase text-xs tracking-widest shadow-lg btn-active">Einstellungen speichern</button>
+  </div>
+</div>
+
+<!-- ===== ADMIN ===== -->
+<div id="view-admin" class="view-panel hidden flex-grow flex flex-col bg-white">
+  <header class="p-5 border-b flex items-center gap-3 bg-white sticky top-0 z-10 pt-safe">
+    <button onclick="showView('view-dashboard')" class="p-2.5 bg-gray-50 rounded-xl border">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <h2 class="text-sm font-extrabold nhf-orange uppercase tracking-wider">Systemverwaltung</h2>
+  </header>
+  <div class="p-5 space-y-6 overflow-y-auto flex-grow">
+
+    <!-- Pending -->
+    <section class="bg-orange-50/40 p-4 rounded-2xl border border-orange-100">
+      <h3 class="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-3">Freigaben ausstehend</h3>
+      <div id="admin-pending" class="space-y-2"></div>
+    </section>
+
+    <!-- Backup -->
+    <section class="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
+      <h3 class="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Datensicherung</h3>
+      <button onclick="createBackup()" class="w-full py-3 bg-orange-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Backup herunterladen
+      </button>
+      <input type="file" id="backup-input" accept=".json" class="hidden" onchange="restoreBackup(event)">
+      <button onclick="document.getElementById('backup-input').click()" class="w-full py-3 bg-gray-200 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 border border-gray-300">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Backup einspielen
+      </button>
+    </section>
+
+    <!-- Kostenstellen -->
+    <section class="space-y-3">
+      <h3 class="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Kostenstellen</h3>
+      <div id="admin-kst-list" class="space-y-2"></div>
+      <div class="flex gap-2">
+        <input type="text" id="new-kst" placeholder="z.B. 4600" class="flex-grow p-3 border rounded-xl text-sm outline-none bg-white focus:ring-2 focus:ring-orange-500">
+        <button onclick="addKst()" class="px-4 nhf-bg-orange text-white rounded-xl text-xs font-bold uppercase">+</button>
+      </div>
+    </section>
+
+    <!-- Prüfpunkte -->
+    <section class="space-y-3">
+      <h3 class="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Prüfpunkte Monatsinspektion</h3>
+      <div id="admin-insp-list" class="space-y-2"></div>
+      <div class="flex gap-2">
+        <input type="text" id="new-insp" placeholder="Prüfpunkt Bezeichnung" class="flex-grow p-3 border rounded-xl text-sm outline-none bg-white focus:ring-2 focus:ring-orange-500">
+        <button onclick="addInspStep()" class="px-4 nhf-bg-orange text-white rounded-xl text-xs font-bold uppercase">+</button>
+      </div>
+    </section>
+
+    <!-- Benutzer -->
+    <section class="space-y-3">
+      <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Benutzerkonten</h3>
+      <div id="admin-user-list" class="space-y-2"></div>
+      <div class="bg-gray-50 p-4 rounded-2xl border space-y-2">
+        <input type="text" id="nu-name" placeholder="Name" class="w-full p-3 border rounded-xl text-sm outline-none bg-white">
+        <input type="password" id="nu-pass" placeholder="Passwort" class="w-full p-3 border rounded-xl text-sm outline-none bg-white">
+        <select id="nu-role" class="w-full p-3 border rounded-xl text-sm font-bold bg-white text-gray-700 outline-none">
+          <option value="Monteur">Monteur</option>
+          <option value="Admin">Administrator</option>
+        </select>
+        <button onclick="createUser()" class="w-full py-3 nhf-bg-orange text-white rounded-xl text-xs font-bold uppercase">Benutzer anlegen</button>
+      </div>
+    </section>
+
+    <!-- Objekte -->
+    <section class="space-y-3">
+      <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Netz-Objekte</h3>
+      <div id="admin-obj-list" class="space-y-2"></div>
+      <div class="bg-gray-50 p-4 rounded-2xl border space-y-2">
+        <div class="flex gap-2">
+          <select id="no-type" class="p-3 border rounded-xl text-sm font-bold bg-white text-gray-700 outline-none">
+            <option>UW</option><option>SW</option>
+          </select>
+          <input type="text" id="no-name" placeholder="Bezeichnung" class="flex-grow p-3 border rounded-xl text-sm outline-none bg-white">
+        </div>
+        <button onclick="createObject()" class="w-full py-3 nhf-bg-orange text-white rounded-xl text-xs font-bold uppercase">Objekt hinzufügen</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- KAMERA -->
+<div id="view-camera" class="hidden fixed inset-0 z-[110] bg-black flex flex-col no-print">
+  <div class="relative flex-grow flex items-center justify-center overflow-hidden">
+    <video id="video-feed" autoplay playsinline class="w-full h-full object-cover"></video>
+    <canvas id="photo-canvas" class="hidden"></canvas>
+    <button onclick="stopCamera()" class="absolute top-5 right-5 p-3 bg-white/20 backdrop-blur rounded-full text-white">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="h-32 bg-black flex items-center justify-center">
+    <button onclick="takePhoto()" class="w-20 h-20 bg-white rounded-full border-4 border-gray-600 flex items-center justify-center active:scale-90">
+      <div class="w-16 h-16 bg-white border-2 border-black rounded-full"></div>
+    </button>
+  </div>
+</div>
+
+<!-- MODAL: Mängel erkannt -->
+<div id="modal-defect" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-6 modal-overlay no-print">
+  <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-8 space-y-5 text-center">
+    <div class="w-14 h-14 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
+      <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <h3 class="text-base font-bold text-gray-900">Mängel erkannt</h3>
+    <p class="text-xs text-gray-500 leading-relaxed">Sollen automatisch Instandhaltungs-Aufträge generiert werden?</p>
+    <div class="space-y-2">
+      <button onclick="finalizeProtocol(true)" class="w-full py-4 nhf-bg-orange rounded-2xl text-[10px] font-bold text-white uppercase shadow-lg active:scale-95">Ja, Aufträge anlegen</button>
+      <button onclick="finalizeProtocol(false)" class="w-full py-3 bg-gray-100 rounded-2xl text-[10px] font-bold text-gray-500 uppercase">Nur Protokoll speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Task abschließen -->
+<div id="modal-task" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-6 modal-overlay no-print">
+  <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-6 space-y-4">
+    <h3 class="text-sm font-bold text-gray-900 uppercase text-center">Auftrag abschließen</h3>
+    <p id="modal-task-title" class="text-xs nhf-orange font-bold uppercase text-center"></p>
+    <div class="grid grid-cols-2 gap-2">
+      <div>
+        <label class="text-[8px] font-bold text-gray-400 uppercase">Beginn</label>
+        <input type="time" id="mt-start" oninput="calcDuration('mt-')" class="w-full p-2 bg-gray-50 border rounded-xl text-xs font-bold outline-none mt-1">
+      </div>
+      <div>
+        <label class="text-[8px] font-bold text-gray-400 uppercase">Ende</label>
+        <input type="time" id="mt-end" oninput="calcDuration('mt-')" class="w-full p-2 bg-gray-50 border rounded-xl text-xs font-bold outline-none mt-1">
+      </div>
+    </div>
+    <div class="bg-orange-50 p-2 rounded-xl border border-orange-100 flex items-center justify-between">
+      <p class="text-[8px] font-bold nhf-orange uppercase">Dauer</p>
+      <div class="flex items-center gap-1">
+        <input type="number" id="mt-hrs" placeholder="0" class="w-8 bg-white border rounded-lg p-1 text-center font-bold text-xs text-orange-800 outline-none">
+        <span class="text-[8px] nhf-orange font-bold">h</span>
+        <input type="number" id="mt-mins" placeholder="0" class="w-8 bg-white border rounded-lg p-1 text-center font-bold text-xs text-orange-800 outline-none">
+        <span class="text-[8px] nhf-orange font-bold">m</span>
+      </div>
+    </div>
+    <div>
+      <label class="text-[9px] font-bold text-gray-400 uppercase">Kostenstelle</label>
+      <select id="mt-kst" class="w-full p-3 bg-gray-50 border rounded-xl text-xs font-bold outline-none text-gray-800 mt-1"></select>
+    </div>
+    <textarea id="mt-note" placeholder="Tätigkeitsnachweis..." class="w-full p-3 bg-gray-50 border rounded-xl text-xs h-16 outline-none resize-none"></textarea>
+    <div class="space-y-2">
+      <button onclick="submitTaskDone()" class="w-full py-4 nhf-bg-orange text-white rounded-2xl text-[10px] font-bold uppercase shadow-lg active:scale-95">Speichern & Beenden</button>
+      <button onclick="closeTaskModal()" class="w-full py-3 bg-gray-100 rounded-2xl text-[10px] font-bold text-gray-500 uppercase">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======================== STATE ========================
+let S = {
+  users: [],
+  objects: [
+    { id:1, name:"UW Badstraße", type:"UW" },
+    { id:2, name:"UW Böllinger Höfe", type:"UW" },
+    { id:3, name:"SW Kirchheim", type:"SW" }
+  ],
+  tasks: [],
+  archive: [],
+  ve: [],
+  inspSteps: [
+    { id:1, label:'Schutztechnik i.O.' },
+    { id:2, label:'Gebäude i.O.' },
+    { id:3, label:'Schaltanlage i.O.' }
+  ],
+  costCenters: ["4200","4300","4500","4800"],
+  objSettings: {},   // { [objId]: { t1,t2,t3,t4, z180, z280, trafoCount, lastInspDate } }
+  currentUser: null
+};
+
+const SK = 'nhf_v6_final';
+let activeObjId = null;
+let selTaskCat = 'green';
+let currentTask = null;
+let photoData = null;
+let sigData = null;
+let sigVEEmp = null, sigVEAus = null;
+let streamObj = null;
+let qrScanner = null;
+let curAction = '';
+
+// Signature pad state
+let sigDrawing = false, sigLastX = 0, sigLastY = 0;
+let sigCtx = null, sigCanvas = null;
+let veEmpCtx = null, veAusCtx = null;
+
+// ======================== HELPERS ========================
+const gId = id => document.getElementById(id);
+const $ = gId;
+
+function genId() { return 'nhf-' + Math.random().toString(36).substr(2,9) + '-' + Date.now(); }
+
+async function hashPw(pw) {
+  const enc = new TextEncoder().encode(pw);
+  const h = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function save() { localStorage.setItem(SK, JSON.stringify(S)); }
+
+function showView(id) {
+  document.querySelectorAll('.view-panel').forEach(v=>v.classList.add('hidden'));
+  $(id)?.classList.remove('hidden');
+}
+
+function toast(txt) {
+  const t = $('toast-el');
+  t.innerText = txt;
+  t.style.opacity = '1';
+  setTimeout(()=>t.style.opacity='0', 2500);
+}
+
+function calcDuration(pfx) {
+  const s = $(pfx+'start')?.value, e = $(pfx+'end')?.value;
+  const hF = $(pfx+'hrs'), mF = $(pfx+'mins');
+  if (!s||!e||!hF||!mF) return;
+  const [h1,m1] = s.split(':').map(Number);
+  const [h2,m2] = e.split(':').map(Number);
+  let d = (h2*60+m2)-(h1*60+m1);
+  if(d<0) d+=1440;
+  hF.value = Math.floor(d/60);
+  mF.value = d%60;
+}
+
+function fmtDur(mins) {
+  const h=Math.floor(mins/60), m=mins%60;
+  return h>0?`${h}h ${m}min`:`${m} Min`;
+}
+
+function fillKst(selId) {
+  const sel = $(selId); if(!sel) return;
+  sel.innerHTML = S.costCenters.map(c=>`<option value="${c}">KST ${c}</option>`).join('')||'<option>Keine KST</option>';
+}
+
+// ======================== INIT ========================
+async function init() {
+  const saved = localStorage.getItem(SK);
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    S = {...S, ...parsed};
+  } else {
+    S.users.push({ name:'Admin', pass: await hashPw('0000'), role:'Admin', isApproved:true });
+    save();
+  }
+  S.users.forEach(u=>{
+    if(u.isApproved===undefined) u.isApproved=true;
+    if(!u.role) u.role = u.isAdmin?'Admin':'Monteur';
+  });
+  if(!S.costCenters) S.costCenters=["4200","4300","4500","4800"];
+  if(!S.objSettings) S.objSettings={};
+  if(!S.ve) S.ve=[];
+  save();
+  renderObjectList();
+  setTaskCat('green');
+
+  // Setup sig pad after short delay
+  setTimeout(()=>{
+    setupSigPad('sig-canvas', ctx=>sigCtx=ctx, canvas=>sigCanvas=canvas);
+    setupVESig();
+  }, 400);
+}
+
+// ======================== AUTH ========================
+async function handleLogin() {
+  const u = $('l-user').value.trim(), p = $('l-pass').value;
+  const user = S.users.find(x=>x.name.toLowerCase()===u.toLowerCase());
+  if (user && user.pass === await hashPw(p)) {
+    if (!user.isApproved) { $('l-status').innerText='Account nicht freigegeben'; return; }
+    S.currentUser = user;
+    $('btn-admin').style.display = (user.role==='Admin')?'block':'none';
+    showDashboard();
+  } else {
+    $('l-status').innerText='Zugriff verweigert';
+    $('view-login').classList.add('error-shake');
+    setTimeout(()=>$('view-login').classList.remove('error-shake'),400);
+  }
+}
+
+async function handleRegister() {
+  const u=$('r-user').value.trim(), p=$('r-pass').value, r=$('r-role').value;
+  if(!u||!p){$('r-status').innerText='Felder ausfüllen';return;}
+  if(S.users.find(x=>x.name.toLowerCase()===u.toLowerCase())){$('r-status').innerText='Name vergeben';return;}
+  S.users.push({name:u, pass:await hashPw(p), role:r, isApproved:false});
+  save(); toast('ANFRAGE GESENDET');
+  $('r-user').value=''; $('r-pass').value='';
+  showView('view-login');
+}
+
+function logout() {
+  S.currentUser=null; $('l-user').value=''; $('l-pass').value=''; $('l-status').innerText='';
+  showView('view-login');
+}
+
+// ======================== DASHBOARD ========================
+function showDashboard() { renderObjectList(); showView('view-dashboard'); }
+
+function renderObjectList() {
+  const q=($('search-bar')?.value||'').toLowerCase();
+  const filtered = S.objects.filter(o=>o.name.toLowerCase().includes(q));
+  $('object-list').innerHTML = filtered.map(obj=>{
+    const openT = S.tasks.filter(t=>t.objectId===obj.id&&!t.done).length;
+    const openVE = S.ve.filter(v=>v.objectId===obj.id).length;
+    const os = S.objSettings[obj.id]||{};
+    const daysSince = os.lastInspDate ? Math.floor((Date.now()-new Date(os.lastInspDate))/(86400000)) : null;
+    const warn = daysSince!==null && daysSince>=25;
+
+    return `<div onclick="selectObject(${obj.id})" class="p-5 bg-white rounded-3xl border border-gray-100 cursor-pointer btn-active shadow-sm relative">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 uppercase">${obj.type}</span>
+          <h3 class="font-bold text-gray-800 text-sm uppercase mt-1">${obj.name}</h3>
+          <div class="flex gap-3 mt-1">
+            ${openT>0?`<p class="text-[8px] font-black text-red-500 uppercase">⚠️ ${openT} Aufgabe${openT>1?'n':''}</p>`:`<p class="text-[8px] font-bold text-green-500 uppercase">✓ Erledigt</p>`}
+            ${openVE>0?`<p class="text-[8px] font-bold text-green-700 uppercase">🔒 ${openVE} VE</p>`:''}
+          </div>
+        </div>
+        <div class="flex flex-col items-end gap-1">
+          ${openT>0?`<div class="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">${openT}</div>`:''}
+          ${warn?`<span class="text-[8px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">⏰ Fällig</span>`:''}
+        </div>
+      </div>
+      ${daysSince!==null?`<p class="text-[8px] text-gray-400 mt-2">Letzte Inspektion: vor ${daysSince} Tag${daysSince!==1?'en':''}</p>`:''}
+    </div>`;
+  }).join('');
+}
+
+function selectObject(id) {
+  activeObjId = id;
+  const obj = S.objects.find(x=>x.id===id);
+  $('detail-obj-name').innerText = obj.name;
+
+  // 30-Tage Warnung
+  const os = S.objSettings[id]||{};
+  const bar = $('detail-warn-bar');
+  if (os.lastInspDate) {
+    const days = Math.floor((Date.now()-new Date(os.lastInspDate))/86400000);
+    if (days>=25) {
+      bar.classList.remove('hidden');
+      $('detail-warn-text').innerText = `Letzte Inspektion vor ${days} Tagen — Prüfung erforderlich!`;
+    } else {
+      bar.classList.add('hidden');
+    }
+    $('detail-last-insp').innerText = `Letzte Prüfung: vor ${days} Tag${days!==1?'en':''}`;
+  } else {
+    bar.classList.add('hidden');
+    $('detail-last-insp').innerText = 'Noch keine Inspektion erfasst';
+  }
+
+  updateBadges();
+  showView('view-detail');
+}
+
+function updateBadges() {
+  const tCount = S.tasks.filter(t=>t.objectId===activeObjId&&!t.done).length;
+  const vCount = S.ve.filter(v=>v.objectId===activeObjId).length;
+  const tb = $('detail-task-count'), vb = $('detail-ve-count');
+  if(tCount>0){tb.innerText=tCount;tb.classList.remove('hidden');}else{tb.classList.add('hidden');}
+  if(vCount>0){vb.innerText=vCount;vb.classList.remove('hidden');}else{vb.classList.add('hidden');}
+}
+
+// ======================== ACTIONS ========================
+function openAction(action) {
+  curAction = action;
+  photoData = null; sigData = null;
+
+  if(action==='tasks'){renderTasks();return showView('view-tasks');}
+  if(action==='archive'){renderArchive();return showView('view-archive');}
+  if(action==='ve'){openVEForm();return;}
+
+  // Reset form
+  $('form-user').innerText = S.currentUser?.name||'';
+  $('form-start').value=''; $('form-end').value='';
+  $('form-hrs').value=''; $('form-mins').value='';
+  $('photo-preview').innerHTML='<span class="text-gray-400 text-[10px] font-bold uppercase">Kein Bild erfasst</span>';
+  $('sig-status').innerText='Bitte unterschreiben';
+  $('sig-req-label').classList.remove('hidden');
+  if(sigCtx&&sigCanvas) sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+  fillKst('form-kst');
+
+  const content = $('form-content');
+  const os = S.objSettings[activeObjId]||{};
+  const tc = parseInt(os.trafoCount)||0;
+
+  if(action==='inspection') {
+    $('form-title').innerText='Monatsinspektion';
+    let html = S.inspSteps.map(t=>`
+      <div class="p-4 bg-gray-50 border rounded-2xl space-y-2">
+        <label class="flex items-center gap-3">
+          <input type="checkbox" checked class="w-5 h-5 rounded text-orange-600" id="ic-${t.id}">
+          <span class="text-sm font-bold uppercase text-gray-700">${t.label}</span>
+        </label>
+        <textarea id="icomm-${t.id}" placeholder="Kommentar zu ${t.label}..." class="w-full p-3 bg-white border rounded-xl text-xs h-14 outline-none resize-none focus:border-orange-300"></textarea>
+      </div>`).join('');
+
+    // Trafo Stufensteller Felder
+    if(tc>0) {
+      html += `<div class="bg-orange-50 border border-orange-100 p-4 rounded-2xl space-y-2">
+        <p class="text-[10px] font-bold text-orange-700 uppercase">Trafo-Stufensteller Ablesewerte</p>`;
+      for(let i=1;i<=tc;i++) {
+        const prev = os[`t${i}`]||'';
+        html += `<div class="flex items-center gap-3">
+          <label class="text-[10px] font-bold text-gray-500 w-16 uppercase">Trafo ${i}</label>
+          <input type="text" id="insp-t${i}" value="${prev}" placeholder="Stufe" class="flex-grow p-2 bg-white border rounded-xl text-sm outline-none focus:ring-1 focus:ring-orange-400">
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    // Zähler
+    html += `<div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl space-y-2">
+      <p class="text-[10px] font-bold text-blue-700 uppercase">Zählerstände</p>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-[9px] font-bold text-gray-400 uppercase">1.8.0 (kWh)</label>
+          <input type="number" id="insp-z180" step="0.001" value="${os.z180||''}" placeholder="0.000" class="w-full p-2 bg-white border rounded-xl text-sm outline-none focus:ring-1 focus:ring-blue-400 mt-1">
+        </div>
+        <div>
+          <label class="text-[9px] font-bold text-gray-400 uppercase">2.8.0 (kWh)</label>
+          <input type="number" id="insp-z280" step="0.001" value="${os.z280||''}" placeholder="0.000" class="w-full p-2 bg-white border rounded-xl text-sm outline-none focus:ring-1 focus:ring-blue-400 mt-1">
+        </div>
+      </div>
+    </div>`;
+
+    content.innerHTML = html;
+  } else {
+    $('form-title').innerText='Mängelmeldung';
+    content.innerHTML=`<textarea id="defect-note" placeholder="Schadensbeschreibung..." class="w-full p-4 border rounded-2xl h-32 text-sm bg-gray-50 outline-none resize-none focus:border-orange-300"></textarea>`;
+  }
+
+  showView('view-form');
+}
+
+function handleFormSubmit() {
+  if(!sigData){alert('Bitte Unterschrift leisten!');return;}
+  if(curAction==='inspection'){
+    let hasIssues=false;
+    S.inspSteps.forEach(t=>{if(!$('ic-'+t.id)?.checked)hasIssues=true;});
+    if(hasIssues)return $('modal-defect').classList.remove('hidden');
+  }
+  finalizeProtocol(false);
+}
+
+function finalizeProtocol(autoTasks) {
+  $('modal-defect').classList.add('hidden');
+  let note='';
+  const os = S.objSettings[activeObjId]||{};
+  const tc = parseInt(os.trafoCount)||0;
+
+  if(curAction==='inspection'){
+    note = S.inspSteps.map(t=>{
+      const ok=$('ic-'+t.id)?.checked;
+      const comm=$('icomm-'+t.id)?.value||'';
+      return `${ok?'[OK]':'[MANGEL]'} ${t.label}${comm?' - '+comm:''}`;
+    }).join('\n');
+
+    // Trafo Werte
+    if(tc>0){
+      note+='\n\nStufensteller:';
+      for(let i=1;i<=tc;i++){
+        const v=$('insp-t'+i)?.value||'-';
+        note+=`\nTrafo ${i}: ${v}`;
+        if(!S.objSettings[activeObjId]) S.objSettings[activeObjId]={};
+        S.objSettings[activeObjId][`t${i}`]=v;
+      }
+    }
+
+    // Zähler
+    const z180=$('insp-z180')?.value||'';
+    const z280=$('insp-z280')?.value||'';
+    if(z180||z280){
+      note+=`\n\nZähler 1.8.0: ${z180||'-'} kWh\nZähler 2.8.0: ${z280||'-'} kWh`;
+      if(!S.objSettings[activeObjId]) S.objSettings[activeObjId]={};
+      S.objSettings[activeObjId].z180=z180;
+      S.objSettings[activeObjId].z280=z280;
+    }
+
+    // Letzte Inspektion Datum
+    if(!S.objSettings[activeObjId]) S.objSettings[activeObjId]={};
+    S.objSettings[activeObjId].lastInspDate = new Date().toISOString();
+
+  } else {
+    note = $('defect-note')?.value||'Keine Beschreibung';
+  }
+
+  const h=parseInt($('form-hrs').value)||0, m=parseInt($('form-mins').value)||0;
+
+  const proto = {
+    id:genId(), objectId:activeObjId,
+    type:curAction==='inspection'?'Monatsinspektion':'Mängelmeldung',
+    author:S.currentUser.name,
+    timestamp:new Date().toLocaleString('de-DE'),
+    isoTs:new Date().toISOString(),
+    note, photo:photoData, signature:sigData,
+    costCenter:$('form-kst')?.value||'-',
+    duration:(h*60)+m
+  };
+
+  S.archive.unshift(proto);
+
+  if(autoTasks){
+    S.tasks.push({id:genId(),objectId:activeObjId,title:'INSTANDSETZUNG: Mängel aus Monatsinspektion',category:'red',dueDate:'SOFORT',done:false,date:new Date().toLocaleDateString('de-DE')});
+  }
+
+  save(); toast('PROTOKOLL GESPEICHERT ✓');
+  setTimeout(()=>sharePDF(proto.id),600);
+  showView('view-detail');
+  updateBadges();
+  renderObjectList();
+}
+
+// ======================== VE VERGABE ========================
+function openVEForm() {
+  const obj=S.objects.find(o=>o.id===activeObjId);
+  $('ve-obj').innerText=obj.name;
+  $('ve-aussteller').innerText=S.currentUser?.name||'-';
+  $('ve-datum').innerText=new Date().toLocaleDateString('de-DE');
+  $('ve-aussteller-name').value='';
+  $('ve-aussteller-funktion').value='';
+  $('ve-aussteller-tel').value='';
+  $('ve-emp-name').value=''; $('ve-emp-firma').value='';
+  $('ve-emp-rolle').value=''; $('ve-emp-tel').value='';
+  $('ve-bereich').value=''; $('ve-number').value='';
+  $('ve-time-start').value=''; $('ve-time-end').value='';
+  $('ve-rueck-zeit').value=''; $('ve-rueck-zustand').value='';
+  ['ve-sch1','ve-sch2','ve-sch3','ve-s1','ve-s2','ve-s3','ve-s4','ve-s5'].forEach(id=>$(id).checked=false);
+  if(veEmpCtx) veEmpCtx.clearRect(0,0,9999,9999);
+  if(veAusCtx) veAusCtx.clearRect(0,0,9999,9999);
+  sigVEEmp=null; sigVEAus=null;
+  showView('view-ve');
+}
+
+function submitVE() {
+  const obj=S.objects.find(o=>o.id===activeObjId);
+  const veEntry = {
+    id:genId(), objectId:activeObjId, objName:obj.name,
+    veNumber:$('ve-number').value||genId().substr(4,8).toUpperCase(),
+    datum:new Date().toLocaleDateString('de-DE'),
+    zeitStart:$('ve-time-start').value,
+    zeitEnd:$('ve-time-end').value,
+    aussteller:{ name:$('ve-aussteller-name').value, funktion:$('ve-aussteller-funktion').value, tel:$('ve-aussteller-tel').value, user:S.currentUser.name },
+    empfaenger:{ name:$('ve-emp-name').value, firma:$('ve-emp-firma').value, rolle:$('ve-emp-rolle').value, tel:$('ve-emp-tel').value },
+    spannung:$('ve-spannung').value,
+    bereich:$('ve-bereich').value,
+    schaltzustand:[$('ve-sch1').checked,$('ve-sch2').checked,$('ve-sch3').checked],
+    sicherheit:[$('ve-s1').checked,$('ve-s2').checked,$('ve-s3').checked,$('ve-s4').checked,$('ve-s5').checked],
+    sigEmp:sigVEEmp, sigAus:sigVEAus,
+    rueckgabe:{ zeit:$('ve-rueck-zeit').value, zustand:$('ve-rueck-zustand').value },
+    timestamp:new Date().toLocaleString('de-DE'), isoTs:new Date().toISOString()
+  };
+  S.ve.push(veEntry);
+
+  // auch ins Archiv
+  S.archive.unshift({
+    id:genId(), objectId:activeObjId,
+    type:'VE Vergabe',
+    author:S.currentUser.name,
+    timestamp:veEntry.timestamp,
+    isoTs:veEntry.isoTs,
+    note:`VE-Nr: ${veEntry.veNumber}\nEmpfänger: ${veEntry.empfaenger.name} (${veEntry.empfaenger.firma})\nBereich: ${veEntry.bereich}\nSpannung: ${veEntry.spannung}`,
+    photo:null, signature:veEntry.sigEmp,
+    costCenter:'-', duration:0, isVE:true, veId:veEntry.id
+  });
+
+  save(); toast('VE GESPEICHERT ✓');
+  setTimeout(()=>generateVEPDF(veEntry),600);
+  showView('view-detail');
+  updateBadges();
+}
+
+function generateVEPDF(ve) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Header
+  doc.setFillColor(0,102,51);
+  doc.rect(0,0,210,32,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18);
+  doc.text('VERFÜGUNGSERLAUBNIS (VE)',105,16,{align:'center'});
+  doc.setFontSize(9);
+  doc.text('Gemäß DIN VDE 0105-100 • NHF netze • GERICHTSFESTES DOKUMENT',105,25,{align:'center'});
+
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(10);
+  let y=42;
+
+  const line=(lbl,val)=>{ doc.setFont(undefined,'bold'); doc.text(lbl+': ',20,y); doc.setFont(undefined,'normal'); doc.text(String(val||'-'),70,y); y+=7; };
+
+  doc.setFillColor(240,253,244); doc.rect(15,y-5,180,10,'F');
+  doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.text('DOKUMENTENIDENTIFIKATION',20,y);
+  y+=8;
+  line('VE-Nummer',ve.veNumber);
+  line('Datum',ve.datum);
+  line('Gültig',`${ve.zeitStart||'--:--'} bis ${ve.zeitEnd||'--:--'} Uhr`);
+  line('Objekt',ve.objName);
+
+  y+=3;
+  doc.setFillColor(240,253,244); doc.rect(15,y-5,180,10,'F');
+  doc.setFont(undefined,'bold'); doc.text('1. AUSSTELLER (NETZFÜHRENDE STELLE)',20,y); y+=8;
+  doc.setFont(undefined,'normal');
+  line('Name',ve.aussteller.name);
+  line('Funktion',ve.aussteller.funktion);
+  line('Telefon',ve.aussteller.tel);
+
+  y+=3;
+  doc.setFillColor(240,253,244); doc.rect(15,y-5,180,10,'F');
+  doc.setFont(undefined,'bold'); doc.text('2. EMPFÄNGER (ARBEITSVERANTWORTLICHER)',20,y); y+=8;
+  doc.setFont(undefined,'normal');
+  line('Name',ve.empfaenger.name);
+  line('Firma',ve.empfaenger.firma);
+  line('Qualifikation',ve.empfaenger.rolle);
+  line('Tel. Erreichbar',ve.empfaenger.tel);
+
+  y+=3;
+  doc.setFillColor(240,253,244); doc.rect(15,y-5,180,10,'F');
+  doc.setFont(undefined,'bold'); doc.text('3. VE-BEREICH & SCHALTZUSTAND',20,y); y+=8;
+  doc.setFont(undefined,'normal');
+  line('Spannungsebene',ve.spannung);
+  const bText=doc.splitTextToSize('Bereich: '+(ve.bereich||'-'),170);
+  doc.text(bText,20,y); y+=bText.length*6+4;
+
+  const schLabels=['Freigeschaltet','Aufgetrennt','Geerdet & Kurzgeschlossen'];
+  ve.schaltzustand.forEach((v,i)=>{ if(v){doc.text('✓ '+schLabels[i],22,y);y+=6;} });
+
+  y+=3;
+  doc.setFillColor(240,253,244); doc.rect(15,y-5,180,10,'F');
+  doc.setFont(undefined,'bold'); doc.text('5. SICHERHEITSREGELN (DIN VDE 0105-100)',20,y); y+=8;
+  doc.setFont(undefined,'normal');
+  const sLabels=['Freischalten','Gegen Wiedereinschalten sichern','Spannungsfreiheit feststellen','Erden und Kurzschließen','Benachbarte Teile abdecken'];
+  ve.sicherheit.forEach((v,i)=>{ doc.text(`${v?'✓':'☐'} ${i+1}. ${sLabels[i]}`,22,y);y+=6; });
+
+  // Unterschriften
+  if(ve.sigEmp || ve.sigAus) {
+    doc.addPage();
+    y=20;
+    doc.setFillColor(0,102,51); doc.rect(0,0,210,18,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(14);
+    doc.text('VE UNTERSCHRIFTEN',105,12,{align:'center'});
+    doc.setTextColor(0,0,0); doc.setFontSize(10); y=30;
+
+    if(ve.sigEmp){
+      doc.text('EMPFÄNGER - Erhalt & Kenntnisnahme:',20,y); y+=5;
+      doc.addImage(ve.sigEmp,'PNG',20,y,80,40); y+=48;
+      doc.text(`${ve.empfaenger.name} | ${ve.datum}`,20,y); y+=12;
+    }
+    if(ve.sigAus){
+      doc.text('AUSSTELLER - Erteilung der VE:',20,y); y+=5;
+      doc.addImage(ve.sigAus,'PNG',20,y,80,40); y+=48;
+      doc.text(`${ve.aussteller.name} | ${ve.datum}`,20,y); y+=12;
+    }
+  }
+
+  // Rückgabe
+  if(ve.rueckgabe.zustand || ve.rueckgabe.zeit) {
+    y+=5;
+    doc.setFillColor(240,253,244); doc.rect(15,y-5,180,10,'F');
+    doc.setFont(undefined,'bold'); doc.text('7. RÜCKGABE',20,y); y+=8;
+    doc.setFont(undefined,'normal');
+    if(ve.rueckgabe.zeit){doc.text('Datum/Uhrzeit: '+ve.rueckgabe.zeit,22,y);y+=6;}
+    if(ve.rueckgabe.zustand){
+      const t=doc.splitTextToSize('Zustand: '+ve.rueckgabe.zustand,170);
+      doc.text(t,22,y); y+=t.length*6;
+    }
+  }
+
+  // Footer
+  doc.setFontSize(7); doc.setTextColor(150,150,150);
+  doc.text('NHF-VE-FORM-2026 • DIN VDE 0105-100 • DGUV Vorschrift 3 • Gerichtsfestes Dokument',105,285,{align:'center'});
+
+  const fileName=`VE_${ve.objName.replace(/[^a-z0-9]/gi,'_')}_${ve.veNumber}.pdf`;
+
+  const blob=doc.output('blob');
+  const file=new File([blob],fileName,{type:'application/pdf'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    navigator.share({files:[file],title:`VE ${ve.objName}`}).catch(()=>doc.save(fileName));
+  } else { doc.save(fileName); }
+}
+
+// ======================== ARCHIV ========================
+function renderArchive() {
+  const list = S.archive.filter(a=>a.objectId===activeObjId);
+  if(!list.length){$('archive-list').innerHTML=`<p class="text-center py-10 text-xs font-bold text-gray-300 uppercase">Keine Protokolle</p>`;return;}
+  $('archive-list').innerHTML = list.map(a=>`
+    <div class="p-4 bg-gray-50 border rounded-2xl space-y-3 relative">
+      ${a.isVE?'<div class="absolute top-0 right-0 nhf-bg-dark-green text-white text-[7px] px-2 py-0.5 font-bold uppercase rounded-bl-xl">VE</div>':''}
+      ${a.isLegalArchive&&!a.isVE?'<div class="absolute top-0 right-0 nhf-bg-green text-white text-[7px] px-2 py-0.5 font-bold uppercase rounded-bl-xl">REVISIONSFEST</div>':''}
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="text-[9px] font-bold text-orange-600 uppercase tracking-widest">${a.type}</span>
+          <p class="text-[9px] font-bold text-gray-400">${a.timestamp}</p>
+        </div>
+        <button onclick="downloadPDF('${a.id}')" class="p-2 bg-white border rounded-lg text-orange-600 active:scale-90">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg>
+        </button>
+      </div>
+      <p class="text-xs text-gray-700 whitespace-pre-line bg-white p-3 rounded-xl border">${a.note}</p>
+      ${a.duration>0?`<p class="text-[8px] font-black text-orange-600 uppercase border-t pt-2">Dauer: ${fmtDur(a.duration)} | KST: ${a.costCenter} | ${a.author}</p>`:`<p class="text-[8px] font-bold text-gray-400 uppercase border-t pt-2">${a.author} • ${a.costCenter}</p>`}
+      ${a.photo?`<img src="${a.photo}" class="w-full h-28 object-cover rounded-xl border">`:''}
+      ${a.signature?`<div class="mt-2 pt-2 border-t"><p class="text-[8px] text-gray-400 uppercase font-bold mb-1">Unterschrift</p><img src="${a.signature}" class="max-h-16 w-full object-contain bg-white border rounded-xl p-1"></div>`:''}
+    </div>`).join('');
+}
+
+// ======================== PDF ========================
+function genPDFInstance(id) {
+  const entry=S.archive.find(x=>x.id===id);
+  const obj=S.objects.find(x=>x.id===entry.objectId);
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  doc.setFillColor(255,102,0); doc.rect(0,0,210,36,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(18);
+  doc.text('NHF NETZMANAGEMENT',105,16,{align:'center'});
+  doc.setFontSize(11); doc.text('SERVICEBERICHT',105,27,{align:'center'});
+  doc.setTextColor(0,0,0); doc.setFontSize(10);
+  doc.text(`Objekt: ${obj.name}`,20,50);
+  doc.text(`Typ: ${entry.type} | ${entry.timestamp}`,20,58);
+  if(entry.duration>0) doc.text(`Dauer: ${fmtDur(entry.duration)} | KST: ${entry.costCenter} | Prüfer: ${entry.author}`,20,66);
+  else doc.text(`Prüfer: ${entry.author}`,20,66);
+  doc.line(20,72,190,72);
+  doc.text('BEFUND / MASSNAHMEN:',20,82);
+  const split=doc.splitTextToSize(entry.note,170);
+  doc.text(split,20,90);
+  if(entry.photo){doc.addPage();doc.text('FOTODOKUMENTATION',20,20);doc.addImage(entry.photo,'JPEG',20,30,170,110);}
+  if(entry.signature){doc.addPage();doc.text('UNTERSCHRIFT',20,20);doc.addImage(entry.signature,'PNG',20,30,120,60);doc.text(`${entry.author} | ${entry.timestamp}`,20,100);}
+  return {doc,obj,entry};
+}
+
+async function downloadPDF(id) {
+  const {doc,obj}=genPDFInstance(id);
+  doc.save(`NHF_${obj.name.replace(/[^a-z0-9]/gi,'_')}.pdf`);
+}
+
+async function sharePDF(id) {
+  try {
+    const {doc,obj}=genPDFInstance(id);
+    const blob=doc.output('blob');
+    const fn=`NHF_Report_${obj.name.replace(/[^a-z0-9]/gi,'_')}.pdf`;
+    const file=new File([blob],fn,{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:`NHF Bericht - ${obj.name}`});
+      toast('BERICHT GETEILT ✓');
+    } else { doc.save(fn); toast('PDF HERUNTERGELADEN'); }
+  } catch(e) { const {doc,obj}=genPDFInstance(id); doc.save(`NHF_${obj.name}.pdf`); }
+}
+
+// ======================== TASKS ========================
+function setTaskCat(cat) {
+  selTaskCat=cat;
+  ['red','orange','green'].forEach(c=>$('cat-'+c).style.borderColor='transparent');
+  $('cat-'+cat).style.borderColor='#ff6600';
+  $('task-date-wrap').classList.toggle('hidden',cat!=='green');
+}
+
+function renderTasks() {
+  const tasks=S.tasks.filter(t=>t.objectId===activeObjId);
+  if(!tasks.length){$('task-list').innerHTML=`<p class="text-center py-8 text-xs font-bold text-gray-300 uppercase">Keine Aufträge</p>`;return;}
+  $('task-list').innerHTML=tasks.map(t=>`
+    <div class="p-4 bg-white border rounded-2xl flex items-center justify-between shadow-sm border-l-4 ${t.category==='red'?'border-l-red-500':t.category==='orange'?'border-l-orange-500':'border-l-green-500'} ${t.done?'opacity-50':''}">
+      <div class="flex-grow pr-3">
+        <p class="text-[8px] font-black uppercase ${t.category==='red'?'text-red-500':t.category==='orange'?'text-orange-500':'text-green-600'}">${t.category} • Bis: ${t.dueDate}</p>
+        <p class="text-sm font-bold uppercase text-gray-800">${t.title}</p>
+      </div>
+      ${!t.done?`<button onclick="openTaskModal('${t.id}')" class="px-3 py-2 bg-green-50 text-green-600 rounded-xl text-[9px] font-bold uppercase border border-green-200">Beenden</button>`:`<span class="text-[9px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">ERLEDIGT</span>`}
+    </div>`).join('');
+}
+
+function addTask() {
+  const title=$('new-task-title').value.trim();
+  if(!title){toast('BESCHREIBUNG FEHLT');return;}
+  const due=selTaskCat==='red'?'SOFORT':selTaskCat==='orange'?'+14 Tage':($('new-task-date').value||'Termin');
+  S.tasks.unshift({id:genId(),objectId:activeObjId,title,category:selTaskCat,dueDate:due,done:false,date:new Date().toLocaleDateString('de-DE')});
+  $('new-task-title').value=''; save(); renderTasks(); updateBadges(); toast('AUFTRAG ERSTELLT');
+}
+
+function openTaskModal(id) {
+  currentTask=S.tasks.find(t=>t.id===id);
+  $('modal-task-title').innerText=currentTask.title;
+  $('mt-start').value=''; $('mt-end').value=''; $('mt-hrs').value=''; $('mt-mins').value=''; $('mt-note').value='';
+  fillKst('mt-kst');
+  $('modal-task').classList.remove('hidden');
+}
+function closeTaskModal(){$('modal-task').classList.add('hidden');}
+
+function submitTaskDone() {
+  currentTask.done=true;
+  const h=parseInt($('mt-hrs').value)||0, m=parseInt($('mt-mins').value)||0;
+  const rec={
+    id:genId(),objectId:activeObjId,type:'Auftragsabschluss',
+    author:S.currentUser.name,timestamp:new Date().toLocaleString('de-DE'),isoTs:new Date().toISOString(),
+    note:`ERLEDIGT: ${currentTask.title}\n${$('mt-note').value}`,
+    photo:null,signature:null,costCenter:$('mt-kst').value||'-',duration:(h*60)+m,isLegalArchive:true
+  };
+  S.archive.unshift(rec); save(); closeTaskModal(); renderTasks(); updateBadges();
+  toast('AUFTRAG BEENDET'); setTimeout(()=>sharePDF(rec.id),500);
+}
+
+// ======================== OBJEKT EINSTELLUNGEN ========================
+function openObjSettings() {
+  const obj=S.objects.find(o=>o.id===activeObjId);
+  $('objset-title').innerText=`${obj.name} – Einstellungen`;
+  const os=S.objSettings[activeObjId]||{};
+  $('os-t1').value=os.t1||''; $('os-t2').value=os.t2||'';
+  $('os-t3').value=os.t3||''; $('os-t4').value=os.t4||'';
+  $('os-z180').value=os.z180||''; $('os-z280').value=os.z280||'';
+  $('os-trafo-count').value=os.trafoCount||'0';
+  showView('view-obj-settings');
+}
+
+function saveObjSettings() {
+  if(!S.objSettings[activeObjId]) S.objSettings[activeObjId]={};
+  const os=S.objSettings[activeObjId];
+  os.t1=$('os-t1').value; os.t2=$('os-t2').value;
+  os.t3=$('os-t3').value; os.t4=$('os-t4').value;
+  os.z180=$('os-z180').value; os.z280=$('os-z280').value;
+  os.trafoCount=$('os-trafo-count').value;
+  save(); toast('EINSTELLUNGEN GESPEICHERT ✓');
+  showView('view-detail');
+}
+
+// ======================== QR ========================
+function showQRCode() {
+  const obj=S.objects.find(o=>o.id===activeObjId);
+  $('qr-obj-name').innerText=obj.name;
+  const c=$('qrcode-container'); c.innerHTML='';
+  const link=`${location.href.split('?')[0]}?obj=${obj.id}`;
+  new QRCode(c,{text:link,width:200,height:200,colorDark:'#ff6600',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  showView('view-qrcode');
+}
+
+async function downloadQRPDF() {
+  const obj=S.objects.find(o=>o.id===activeObjId);
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:[100,100]});
+  const canvas=$('qrcode-container').querySelector('canvas');
+  const img=canvas.toDataURL('image/jpeg',1.0);
+  doc.setFillColor(255,102,0); doc.rect(0,0,100,15,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(9);
+  doc.text('NHF NETZMANAGEMENT',50,9,{align:'center'});
+  doc.setTextColor(0,0,0); doc.setFontSize(12);
+  doc.text(obj.name.toUpperCase(),50,26,{align:'center'});
+  doc.addImage(img,'JPEG',25,36,50,50);
+  doc.save(`QR_${obj.name.replace(/[^a-z0-9]/gi,'_')}.pdf`);
+}
+
+async function startQRScanner() {
+  showView('view-scanner');
+  qrScanner=new Html5Qrcode('qr-reader');
+  try {
+    await qrScanner.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:250}},txt=>{
+      try {
+        const url=new URL(txt), oid=url.searchParams.get('obj');
+        if(oid){const f=S.objects.find(o=>o.id==oid);if(f){stopQRScanner();selectObject(f.id);toast('OBJEKT: '+f.name);}}
+      } catch(e){}
+    });
+  } catch(e){toast('KAMERA FEHLER');stopQRScanner();}
+}
+
+function stopQRScanner() {
+  if(qrScanner)qrScanner.stop().then(()=>{qrScanner.clear();showView('view-dashboard');}).catch(()=>showView('view-dashboard'));
+  else showView('view-dashboard');
+}
+
+// ======================== KAMERA ========================
+async function startCamera() {
+  try {
+    streamObj=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    $('video-feed').srcObject=streamObj;
+    $('view-camera').classList.remove('hidden');
+  } catch(e){toast('KAMERA VERWEIGERT');}
+}
+function stopCamera(){if(streamObj)streamObj.getTracks().forEach(t=>t.stop());$('view-camera').classList.add('hidden');}
+function takePhoto(){
+  const v=$('video-feed'),c=$('photo-canvas');
+  c.width=v.videoWidth; c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  photoData=c.toDataURL('image/jpeg',0.7);
+  $('photo-preview').innerHTML=`<img src="${photoData}" class="w-full h-full object-cover">`;
+  stopCamera();
+}
+
+// ======================== SIGNATURE PAD ========================
+function setupSigPad(canvasId, ctxCb, canvasCb) {
+  const canvas=$(canvasId); if(!canvas) return;
+  canvasCb && canvasCb(canvas);
+  const ctx=canvas.getContext('2d');
+  ctxCb && ctxCb(ctx);
+
+  const resize=()=>{
+    const r=canvas.getBoundingClientRect();
+    const dpr=window.devicePixelRatio||1;
+    canvas.width=r.width*dpr; canvas.height=r.height*dpr;
+    ctx.scale(dpr,dpr);
+    ctx.strokeStyle='#111'; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.lineWidth=2.5;
+  };
+  resize();
+
+  let drawing=false, lx=0, ly=0;
+  const getXY=(e)=>{
+    const r=canvas.getBoundingClientRect();
+    const src=e.touches?e.touches[0]:e;
+    return [src.clientX-r.left, src.clientY-r.top];
+  };
+
+  const start=(e)=>{drawing=true;[lx,ly]=getXY(e);};
+  const move=(e)=>{
+    if(!drawing)return;
+    const [x,y]=getXY(e);
+    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(x,y); ctx.stroke();
+    [lx,ly]=[x,y];
+    // Update sig data
+    const dataUrl=canvas.toDataURL('image/png');
+    if(canvasId==='sig-canvas'){sigData=dataUrl;$('sig-status').innerText='Unterschrift erfasst ✓';$('sig-req-label').classList.add('hidden');}
+    else if(canvasId==='ve-sig-emp') sigVEEmp=dataUrl;
+    else if(canvasId==='ve-sig-aus') sigVEAus=dataUrl;
+  };
+  const stop=()=>drawing=false;
+
+  canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move);
+  canvas.addEventListener('mouseup',stop); canvas.addEventListener('mouseleave',stop);
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();start(e);},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();move(e);},{passive:false});
+  canvas.addEventListener('touchend',e=>{e.preventDefault();stop();},{passive:false});
+}
+
+function clearSig(){
+  if(sigCtx&&sigCanvas)sigCtx.clearRect(0,0,sigCanvas.width*3,sigCanvas.height*3);
+  sigData=null; $('sig-status').innerText='Bitte unterschreiben'; $('sig-req-label').classList.remove('hidden');
+}
+
+function setupVESig(){
+  setupSigPad('ve-sig-emp',ctx=>veEmpCtx=ctx,()=>{});
+  setupSigPad('ve-sig-aus',ctx=>veAusCtx=ctx,()=>{});
+}
+
+function clearVESig(who){
+  if(who==='emp'){veEmpCtx?.clearRect(0,0,9999,9999);sigVEEmp=null;}
+  else{veAusCtx?.clearRect(0,0,9999,9999);sigVEAus=null;}
+}
+
+// ======================== ADMIN ========================
+function showAdminPanel(){renderAdminLists();showView('view-admin');}
+
+function renderAdminLists(){
+  // Pending
+  const pend=S.users.filter(u=>!u.isApproved);
+  $('admin-pending').innerHTML=pend.length?pend.map(u=>`
+    <div class="flex justify-between items-center p-3 bg-white border rounded-xl">
+      <div><span class="text-xs font-bold">${u.name}</span><span class="block text-[8px] text-orange-600">${u.role}</span></div>
+      <div class="flex gap-1.5">
+        <button onclick="approveUser('${u.name}')" class="px-2.5 py-1.5 bg-green-600 text-white text-[9px] font-bold uppercase rounded-lg">Freigeben</button>
+        <button onclick="rejectUser('${u.name}')" class="px-2.5 py-1.5 bg-red-500 text-white text-[9px] font-bold uppercase rounded-lg">Ablehnen</button>
+      </div>
+    </div>`).join(''):`<p class="text-xs text-gray-400 italic text-center py-2">Keine ausstehenden Anfragen</p>`;
+
+  // KST
+  $('admin-kst-list').innerHTML=S.costCenters.map(c=>`
+    <div class="flex justify-between items-center p-3 bg-white border rounded-xl">
+      <span class="text-xs font-bold">KST ${c}</span>
+      <button onclick="deleteKst('${c}')" class="text-red-500 text-[9px] font-bold uppercase">Löschen</button>
+    </div>`).join('');
+
+  // Prüfpunkte
+  $('admin-insp-list').innerHTML=S.inspSteps.map(t=>`
+    <div class="flex justify-between items-center p-3 bg-white border border-orange-100 rounded-xl">
+      <span class="text-xs font-bold">${t.label}</span>
+      <button onclick="deleteInspStep(${t.id})" class="text-red-400 text-[9px] font-bold uppercase">Entfernen</button>
+    </div>`).join('');
+
+  // Benutzer
+  $('admin-user-list').innerHTML=S.users.filter(u=>u.isApproved).map(u=>`
+    <div class="flex justify-between items-center p-3 bg-white border rounded-xl">
+      <div><span class="text-xs font-bold">${u.name} ${u.role==='Admin'?'⭐':''}</span><span class="block text-[8px] text-gray-400">${u.role}</span></div>
+      ${u.name!=='Admin'?`<button onclick="deleteUser('${u.name}')" class="text-red-500 text-[9px] font-bold uppercase">Löschen</button>`:'<span class="text-[8px] text-gray-300">System</span>'}
+    </div>`).join('');
+
+  // Objekte
+  $('admin-obj-list').innerHTML=S.objects.map(o=>`
+    <div class="flex justify-between items-center p-3 bg-white border rounded-xl">
+      <span class="text-xs font-bold">${o.type}: ${o.name}</span>
+      <button onclick="deleteObj(${o.id})" class="text-red-500 text-[9px] font-bold uppercase">Löschen</button>
+    </div>`).join('');
+}
+
+function approveUser(n){const u=S.users.find(x=>x.name===n);if(u){u.isApproved=true;save();renderAdminLists();toast('FREIGEGEBEN');}}
+function rejectUser(n){S.users=S.users.filter(x=>x.name!==n);save();renderAdminLists();}
+function addKst(){const v=$('new-kst').value.trim();if(!v||S.costCenters.includes(v))return;S.costCenters.push(v);S.costCenters.sort();$('new-kst').value='';save();renderAdminLists();}
+function deleteKst(c){S.costCenters=S.costCenters.filter(x=>x!==c);save();renderAdminLists();}
+function addInspStep(){const l=$('new-insp').value.trim();if(!l)return;S.inspSteps.push({id:Date.now(),label:l});$('new-insp').value='';save();renderAdminLists();}
+function deleteInspStep(id){S.inspSteps=S.inspSteps.filter(t=>t.id!==id);save();renderAdminLists();}
+async function createUser(){
+  const n=$('nu-name').value.trim(),p=$('nu-pass').value,r=$('nu-role').value;
+  if(!n||!p)return;
+  S.users.push({name:n,pass:await hashPw(p),role:r,isApproved:true});
+  $('nu-name').value='';$('nu-pass').value='';save();renderAdminLists();toast('KONTO ERSTELLT');
+}
+function deleteUser(n){S.users=S.users.filter(u=>u.name!==n);save();renderAdminLists();}
+function createObject(){
+  const n=$('no-name').value.trim(),t=$('no-type').value;
+  if(!n)return;
+  S.objects.push({id:Date.now(),name:n,type:t});
+  $('no-name').value='';save();renderAdminLists();renderObjectList();
+}
+function deleteObj(id){S.objects=S.objects.filter(o=>o.id!==id);save();renderAdminLists();renderObjectList();}
+
+// ======================== BACKUP ========================
+function createBackup(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`NHF_Backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click(); toast('BACKUP HERUNTERGELADEN');
+}
+function restoreBackup(e){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(d&&Array.isArray(d.users)&&Array.isArray(d.objects)){
+        if(confirm('Backup einspielen? Alle Daten werden überschrieben!')){
+          S=d;save();toast('IMPORT ERFOLGREICH');setTimeout(()=>location.reload(),1000);
+        }
+      } else toast('UNGÜLTIGE DATEI');
+    } catch(e){toast('FEHLER BEIM LESEN');}
+  };
+  r.readAsText(f);
+}
+
+// ======================== START ========================
+window.onload=()=>{
+  init();
+  setTimeout(()=>{
+    setupSigPad('sig-canvas',ctx=>sigCtx=ctx,c=>sigCanvas=c);
+    setupVESig();
+  }, 500);
+};
+</script>
+</body>
+</html>
